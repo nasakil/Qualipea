@@ -1,5 +1,5 @@
 import React from 'react';
-import {View,ScrollView,Switch} from 'react-native';
+import {View,ScrollView,Switch,TextInput} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {GC} from '../theme';
 import {Card,Txt,Btn,Chip} from '../components';
@@ -7,10 +7,10 @@ import Top from '../components/Top';
 import {useApp} from '../AppContext';
 
 export default function Settings(){
-  const {snd,toggleSnd,anim,toggleAnim,dark,setDark,T,demo,dev,dg,connect,toggleDemo,askExit,runDiag}=useApp();
+  const {snd,toggleSnd,anim,toggleAnim,piUrl,setPiUrl,dark,setDark,T,demo,dev,dg,connect,toggleDemo,askExit,runDiag}=useApp();
   const on=dev===1;
   const R=[
-    ['hardware-chip-outline','Raspberry Pi 5',on,on?'Connected on local Wi-Fi':dev===2?'Connecting…':'Not connected'],
+    ['hardware-chip-outline','Raspberry Pi 5',on,on?`Connected (${piUrl.replace(/^https?:\/\//,'')})`:dev===2?'Connecting…':`Offline · ${piUrl.replace(/^https?:\/\//,'')}`],
     ['camera-outline','Camera Module 3',on,on?'Ready, 12 MP':'Unavailable until the Pi connects'],
     ['sunny-outline','LED ring',on,on?'On, lighting is even':'Off'],
     ['cube-outline','Grading model',on,on?'yolo11n-cls 1.0.0 loaded, 3 classes (demo value)':'Can’t check until the Pi connects'],
@@ -64,6 +64,33 @@ export default function Settings(){
             <Btn t={dg>=0?'Running diagnostics…':'Run diagnostics'} kind="sec" onPress={runDiag}/>
           </View>
         </View>
+      </Card>
+
+      <Card style={{marginTop:14,borderWidth:1,borderColor:T.line}}>
+        <Txt w="700" s={15.5}>Raspberry Pi 5 server URL</Txt>
+        <Txt s={12.5} c={T.mute} style={{marginTop:2,marginBottom:10}}>
+          Used when Demo mode is off to connect and grade kernel photos.
+        </Txt>
+        <TextInput
+          value={piUrl}
+          onChangeText={setPiUrl}
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="url"
+          placeholder="http://192.168.137.31:5000"
+          placeholderTextColor={T.mute}
+          style={{
+            backgroundColor:T.bg,
+            color:T.ink,
+            borderWidth:1,
+            borderColor:T.line,
+            borderRadius:14,
+            paddingHorizontal:14,
+            paddingVertical:12,
+            fontSize:14.5,
+            fontWeight:'600',
+          }}
+        />
       </Card>
 
       <Card style={{marginTop:14,borderWidth:1,borderColor:T.line,paddingVertical:6}}>

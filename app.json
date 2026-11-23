@@ -8,6 +8,7 @@
     "backgroundColor": "#123d2b",
     "android": {
       "package": "com.qualipea.app",
+      "usesCleartextTraffic": true,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
@@ -15,7 +16,12 @@
       ]
     },
     "ios": {
-      "bundleIdentifier": "com.qualipea.app"
+      "bundleIdentifier": "com.qualipea.app",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
+      }
     },
     "web": {
       "bundler": "metro"

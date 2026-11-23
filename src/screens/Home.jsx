@@ -17,7 +17,7 @@ function getGreeting(){
 }
 
 export default function Home(){
-  const {T,dark,demo,dev,hist,connect,startScan,askExit,anim}=useApp();
+  const {T,dark,demo,dev,piUrl,hist,connect,startScan,askExit,anim}=useApp();
   const pulse=useRef(new Animated.Value(1)).current;
   const floatY=useRef(new Animated.Value(0)).current;
 
@@ -47,7 +47,8 @@ export default function Home(){
   },[anim,pulse,floatY]);
 
   const dotColor=dev===1?GC.A:dev===2?GOLD:T.mute;
-  const statusText=['Not connected · tap to connect','Connected · camera ready','Connecting…'][dev];
+  const host=piUrl.replace(/^https?:\/\//,'');
+  const statusText=[`Tap to connect · ${host}`,demo?'Connected · camera ready':`Connected · ${host}`,'Connecting…'][dev];
 
   return (
     <View style={{flex:1}}>

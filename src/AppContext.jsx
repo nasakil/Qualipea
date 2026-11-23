@@ -4,6 +4,7 @@ import {GR,GC,pc,LT,DK,Th,AnimCtx} from './theme';
 import {GN,SEED} from './data';
 import {Kernel,Card,Txt} from './components';
 import {sfx,setSfx,initAudio} from './sound';
+import {DEFAULT_PI_URL,normalizeUrl,checkPiHealth,classifyKernel} from './api';
 
 const Ctx=createContext(null);
 export const useApp=()=>useContext(Ctx);
@@ -39,6 +40,7 @@ export function AppProvider({children}){
   const [saving,setSaving]=useState(false);
   const [snd,setSnd]=useState(true);
   const [anim,setAnim]=useState(true);
+  const [piUrl,setPiUrl]=useState(DEFAULT_PI_URL);
 
   const hist=demo?hd:hr;
   const setHist=demo?setHd:setHr;
@@ -90,44 +92,70 @@ export function AppProvider({children}){
   const toggleSnd=()=>setSnd(v=>{setSfx(!v);return !v});
   const toggleAnim=()=>setAnim(v=>!v);
 
-  const connect=cb=>{
+  const connect=async(cb)=>{
     if(dev===2)return;
+    const targetUrl=normalizeUrl(piUrl);
     setDev(2);
     setSheet({
       load:1,
       lock:1,
       title:'Connecting to Pi 5',
-      body:'Keep the chamber powered and on the same Wi-Fi.',
+      body:demo
+        ?'Keep the chamber powered and on the same Wi-Fi.'
+        :`Connecting to ${targetUrl}…`,
       steps:CONNECT_STEPS,
       stepIdx:0,
     });
 
-    const t1=setTimeout(()=>{
+    if(demo){
+      setTimeout(()=>{
+        setSheet(prev=>prev&&prev.load?{...prev,stepIdx:1}:prev);
+        sfx('step',0);
+      },550);
+      setTimeout(()=>{
+        setSheet(prev=>prev&&prev.load?{...prev,stepIdx:2}:prev);
+        sfx('step',1);
+      },1300);
+      setTimeout(()=>{
+        setSheet(prev=>prev&&prev.load?{...prev,stepIdx:3}:prev);
+        sfx('step',2);
+        setTimeout(()=>{
+          setDev(1);
+          close();
+          toast('Pi 5 connected (Demo)');
+          sfx('connect');
+          cb&&cb();
+        },420);
+      },2050);
+      return;
+    }
+
+    // Real Raspberry Pi 5 HTTP health check
+    setTimeout(()=>{
       setSheet(prev=>prev&&prev.load?{...prev,stepIdx:1}:prev);
       sfx('step',0);
-    },550);
+    },320);
 
-    const t2=setTimeout(()=>{
-      setSheet(prev=>prev&&prev.load?{...prev,stepIdx:2}:prev);
-      sfx('step',1);
-    },1300);
+    const res=await checkPiHealth(targetUrl);
+    if(!res.ok){
+      setDev(0);
+      sfx('err');
+      setSheet({
+        ic:'alert-circle-outline',
+        bad:1,
+        title:'Can’t reach the Pi 5',
+        body:`Could not connect to ${res.url} (${res.error}). Make sure you’re on the same Wi-Fi, or scan with your phone camera.`,
+        btns:[
+          ['Phone camera','gold',()=>{close();setScr('prep',1)}],
+          ['Retry','sec',()=>{close();connect(cb)}],
+        ],
+      });
+      return;
+    }
 
-    const t3=setTimeout(()=>{
-      if(!demo){
-        setDev(0);
-        sfx('err');
-        setSheet({
-          ic:'alert-circle-outline',
-          bad:1,
-          title:'Can’t reach the Pi',
-          body:'Make sure the chamber is powered and on the same Wi-Fi, or scan directly with your phone camera.',
-          btns:[
-            ['Phone camera','gold',()=>{close();setScr('prep',1)}],
-            ['Retry','sec',()=>{close();connect(cb)}],
-          ],
-        });
-        return;
-      }
+    setSheet(prev=>prev&&prev.load?{...prev,stepIdx:2}:prev);
+    sfx('step',1);
+    setTimeout(()=>{
       setSheet(prev=>prev&&prev.load?{...prev,stepIdx:3}:prev);
       sfx('step',2);
       setTimeout(()=>{
@@ -136,33 +164,72 @@ export function AppProvider({children}){
         toast('Pi 5 connected');
         sfx('connect');
         cb&&cb();
-      },420);
-    },2050);
-
-    return()=>{clearTimeout(t1);clearTimeout(t2);clearTimeout(t3)};
+      },350);
+    },450);
   };
 
   const startScan=()=>!demo?setScr('prep',1):(dev===1?setScr('prep',1):connect(()=>setScr('prep',1)));
   const openCam=()=>{setCap(false);setPhoto(null);setScr('cam',1)};
 
-  const analyze=()=>{
+  const makeFallbackResult=(img)=>{
     const r=Math.random();
     const g=r<.45?'A':r<.8?'B':'C';
     const c=.6+Math.random()*.38;
     const o=['A','B','C'].filter(x=>x!==g);
     const sp=Math.random()*.6+.2;
-    setCur({g,c,rv:c<.75,img:!demo?photo:null,p:{[g]:c,[o[0]]:(1-c)*sp,[o[1]]:(1-c)*(1-sp)}});
+    return {g,c,rv:c<.75,img:img||null,p:{[g]:c,[o[0]]:(1-c)*sp,[o[1]]:(1-c)*(1-sp)}};
+  };
+
+  const analyze=async()=>{
     setPs(0);
     setScr('proc',1);
-    [1,2,3,4].forEach(i=>setTimeout(()=>{setPs(i);sfx('step',i-1)},i*650));
+
+    if(demo||!photo){
+      const nextCur=makeFallbackResult(null);
+      setCur(nextCur);
+      [1,2,3,4].forEach(i=>setTimeout(()=>{setPs(i);sfx('step',i-1)},i*650));
+      setTimeout(()=>{
+        setTab('p');
+        setPd(false);
+        setScr('res',1);
+        sfx(nextCur.g,nextCur.c);
+        if(nextCur.rv)setTimeout(()=>sfx('flag'),750);
+        setTimeout(()=>setPd(true),1300);
+      },3100);
+      return;
+    }
+
+    // Real mode with captured photo: send to Raspberry Pi 5 server
+    setPs(1);
+    sfx('step',0);
+    setTimeout(()=>{setPs(2);sfx('step',1)},450);
+
+    const piRes=await classifyKernel(piUrl,photo);
+    setPs(3);
+    sfx('step',2);
+
+    let finalCur;
+    if(piRes.ok){
+      setDev(1);
+      finalCur={...piRes.result,img:photo};
+    }else{
+      finalCur=makeFallbackResult(photo);
+      toast('Pi offline · using local estimate');
+    }
+
+    setCur(finalCur);
     setTimeout(()=>{
-      setTab('p');
-      setPd(false);
-      setScr('res',1);
-      sfx(g,c);
-      if(c<.75)setTimeout(()=>sfx('flag'),750);
-      setTimeout(()=>setPd(true),1300);
-    },3100);
+      setPs(4);
+      sfx('step',3);
+      setTimeout(()=>{
+        setTab('p');
+        setPd(false);
+        setScr('res',1);
+        sfx(finalCur.g,finalCur.c);
+        if(finalCur.rv)setTimeout(()=>sfx('flag'),750);
+        setTimeout(()=>setPd(true),900);
+      },420);
+    },380);
   };
 
   const save=()=>{
@@ -331,6 +398,7 @@ export function AppProvider({children}){
 
   const value={
     snd,toggleSnd,anim,toggleAnim,
+    piUrl,setPiUrl,
     sys,dark,setDark,T,
     scr,setScr,goTab,navDir,
     oi,setOi,demo,setDemo,dev,setDev,
