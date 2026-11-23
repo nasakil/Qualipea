@@ -151,13 +151,17 @@ export default function Result(){
               </Card>
             ):(
               <Card style={{borderWidth:1,borderColor:T.line}}>
-                <Txt s={13.5} c={T.mute}>Reference price, not grade-adjusted</Txt>
-                <Txt s={38} w="800">₱92.00 <Txt s={16} c={T.mute}>per kg</Txt></Txt>
+                <Txt s={13.5} c={T.mute}>
+                  {cur.price?'Live reference price from Pi 5':'Reference price, not grade-adjusted'}
+                </Txt>
+                <Txt s={38} w="800">
+                  ₱{(cur.price??92).toFixed(2)} <Txt s={16} c={T.mute}>per kg</Txt>
+                </Txt>
                 {[
                   ['Commodity','Spanish peanut kernel'],
-                  ['Source','Demo provider, sample data'],
-                  ['Freshness','Fetched just now'],
-                  ['Grade adjustment','Not approved yet'],
+                  ['Source',cur.priceSource||(cur.fromPi?'Raspberry Pi 5 API':'Demo provider, sample data')],
+                  ['Model',cur.model||'yolo11n-cls 1.0.0'],
+                  ['Grade adjustment',cur.price?'Applied by server':'Not approved yet'],
                 ].map(([a,b])=>(
                   <View key={a} style={{flexDirection:'row',justifyContent:'space-between',paddingVertical:10}}>
                     <Txt c={T.mute} s={14}>{a}</Txt>

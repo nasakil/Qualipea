@@ -1,5 +1,6 @@
 import React,{createContext,useContext,useState,useEffect,useRef} from 'react';
 import {View,Text,Pressable,Animated,Image,useColorScheme} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {GR,GC,pc,LT,DK,Th,AnimCtx} from './theme';
 import {GN,SEED} from './data';
 import {Kernel,Card,Txt} from './components';
@@ -14,6 +15,8 @@ const CONNECT_STEPS=[
   'Opening a secure link',
   'Checking camera and LED',
 ];
+
+const STORE_KEY='@qualipea_state_v1';
 
 export function AppProvider({children}){
   const sys=useColorScheme();
@@ -48,6 +51,32 @@ export function AppProvider({children}){
   const ob=useRef(null);
   const scan=useRef(new Animated.Value(0)).current;
   const toastTimer=useRef(null);
+  const hydrated=useRef(false);
+
+  useEffect(()=>{
+    (async()=>{
+      try{
+        const raw=await AsyncStorage.getItem(STORE_KEY);
+        if(raw){
+          const saved=JSON.parse(raw);
+          if(typeof saved.dark==='boolean')setDark(saved.dark);
+          if(typeof saved.anim==='boolean')setAnim(saved.anim);
+          if(typeof saved.snd==='boolean'){setSnd(saved.snd);setSfx(saved.snd)}
+          if(typeof saved.demo==='boolean')setDemo(saved.demo);
+          if(typeof saved.piUrl==='string'&&saved.piUrl.trim())setPiUrl(saved.piUrl);
+          if(Array.isArray(saved.hr))setHr(saved.hr);
+        }
+      }catch(_){}
+      finally{
+        hydrated.current=true;
+      }
+    })();
+  },[]);
+
+  useEffect(()=>{
+    if(!hydrated.current)return;
+    AsyncStorage.setItem(STORE_KEY,JSON.stringify({dark,anim,snd,demo,piUrl,hr})).catch(()=>{});
+  },[dark,anim,snd,demo,piUrl,hr]);
 
   const setScr=(next,dir=0)=>{
     setNavDir(dir);
@@ -278,6 +307,13 @@ export function AppProvider({children}){
     detail(i,h);
   };
 
+  const removeScan=(i)=>{
+    const next=hist.filter((_,idx)=>idx!==i);
+    setHist(next);
+    close();
+    toast('Scan deleted');
+  };
+
   const detail=(i,list=hist)=>{
     const h=list[i];
     if(!h)return;
@@ -376,24 +412,34 @@ export function AppProvider({children}){
           </View>
         </View>
       ),
-      btns:[['Close','sec',close]],
+      btns:[
+        ['Delete','red',()=>removeScan(i)],
+        ['Close','sec',close],
+      ],
     });
   };
 
-  const runDiag=()=>{
+  const runDiag=async()=>{
     if(dg>=0||dev===2)return;
     let i=0;
     setDg(0);
+    let piReachable=dev===1;
+    if(!demo){
+      checkPiHealth(piUrl).then(r=>{
+        piReachable=r.ok;
+        setDev(r.ok?1:0);
+      });
+    }
     const iv=setInterval(()=>{
       i++;
       if(i>=6){
         clearInterval(iv);
         setDg(-1);
-        toast(dev===1?'Diagnostics passed':'Chamber is offline');
+        toast(piReachable?'Diagnostics passed':'Pi 5 chamber is offline');
       }else{
         setDg(i);
       }
-    },650);
+    },550);
   };
 
   const value={

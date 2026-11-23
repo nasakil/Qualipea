@@ -1,5 +1,5 @@
 import React,{useEffect,useRef} from 'react';
-import {View,Animated,PanResponder} from 'react-native';
+import {View,Animated,PanResponder,BackHandler} from 'react-native';
 import {StatusBar} from 'expo-status-bar';
 import {useApp} from './AppContext';
 import {sfx} from './sound';
@@ -32,15 +32,33 @@ const MAP={
 };
 
 export default function Navigator(){
-  const {T,scr,dark,tabs,goTab,setScr,askDiscard,navDir,anim}=useApp();
+  const {T,scr,dark,tabs,goTab,setScr,askDiscard,askExit,sheet,close,navDir,anim}=useApp();
   const Screen=MAP[scr];
 
   const enterX=useRef(new Animated.Value(0)).current;
   const enterOp=useRef(new Animated.Value(1)).current;
   const dragX=useRef(new Animated.Value(0)).current;
 
-  const stateRef=useRef({scr,tabs,anim,goTab,setScr,askDiscard});
-  stateRef.current={scr,tabs,anim,goTab,setScr,askDiscard};
+  const stateRef=useRef({scr,tabs,anim,goTab,setScr,askDiscard,askExit,sheet,close});
+  stateRef.current={scr,tabs,anim,goTab,setScr,askDiscard,askExit,sheet,close};
+
+  useEffect(()=>{
+    const sub=BackHandler.addEventListener('hardwareBackPress',()=>{
+      const s=stateRef.current;
+      if(s.sheet){
+        if(!s.sheet.lock)s.close();
+        return true;
+      }
+      if(s.scr==='res'){s.askDiscard();return true}
+      if(s.scr==='prep'||s.scr==='cam'){s.setScr('home',-1);return true}
+      if(s.scr==='proc')return true;
+      if(['hist','dash','set'].includes(s.scr)){s.goTab('home');return true}
+      if(s.scr==='home'){s.askExit();return true}
+      if(s.scr==='onb'){s.setScr('splash',-1);return true}
+      return false;
+    });
+    return()=>sub.remove();
+  },[]);
 
   useEffect(()=>{
     dragX.setValue(0);

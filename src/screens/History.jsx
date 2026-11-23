@@ -1,7 +1,7 @@
 import React from 'react';
-import {View,Text,Pressable,ScrollView} from 'react-native';
+import {View,Text,Pressable,ScrollView,Share} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
-import {GR,GC} from '../theme';
+import {GR,GC,pc} from '../theme';
 import {Card,Txt,Btn} from '../components';
 import Row from '../components/Row';
 import Top from '../components/Top';
@@ -9,7 +9,7 @@ import {useApp} from '../AppContext';
 import {sfx} from '../sound';
 
 export default function History(){
-  const {T,filt,setFilt,hist,startScan,anim}=useApp();
+  const {T,filt,setFilt,hist,startScan,toast,anim}=useApp();
   const l=hist.filter(h=>filt==='All'||(filt==='Flagged'?h.r:h.g===filt));
   const n={A:0,B:0,C:0};
   let flagged=0;
@@ -17,9 +17,52 @@ export default function History(){
 
   const counts={All:hist.length,A:n.A,B:n.B,C:n.C,Flagged:flagged};
 
+  const exportSummary=async()=>{
+    if(!hist.length){
+      toast('No scans to export');
+      return;
+    }
+    sfx('tap');
+    const avgConf=pc(hist.reduce((a,b)=>a+b.c,0)/hist.length);
+    const lines=[
+      'QualiPea Batch Grading Report',
+      `Total scans: ${hist.length}`,
+      `Grade A: ${n.A} | Grade B: ${n.B} | Grade C: ${n.C}`,
+      `Avg confidence: ${avgConf}% | Flagged for review: ${flagged}`,
+      '',
+      'Recent scans:',
+      ...hist.slice(0,25).map((h,i)=>`${i+1}. Grade ${h.x||h.g}${h.x?` (model: ${h.g})`:''} — ${pc(h.c)}%${h.r?' [Review]':''} (${h.tm})`),
+    ];
+    try{
+      await Share.share({message:lines.join('\n'),title:'QualiPea Batch Report'});
+    }catch(_){}
+  };
+
   return (
     <ScrollView contentContainerStyle={{paddingHorizontal:20,paddingBottom:145}} showsVerticalScrollIndicator={false}>
-      <Top title="History"/>
+      <Top
+        title="History"
+        right={
+          hist.length?(
+            <Pressable
+              onPress={exportSummary}
+              style={({pressed})=>({
+                width:44,
+                height:44,
+                borderRadius:15,
+                backgroundColor:T.card,
+                borderWidth:1,
+                borderColor:T.line,
+                alignItems:'center',
+                justifyContent:'center',
+                transform:[{scale:pressed&&anim?0.94:1}],
+              })}
+            >
+              <Ionicons name="share-outline" size={21} color={T.ink}/>
+            </Pressable>
+          ):null
+        }
+      />
 
       <Card style={{flexDirection:'row',alignItems:'center',gap:18,borderWidth:1,borderColor:T.line}}>
         <View>

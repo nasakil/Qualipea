@@ -117,6 +117,8 @@ export async function classifyKernel(baseUrl,imageUri){
           rv:c<0.75,
           p:normalizeProbabilities(data,g,c),
           model:data.model||'yolo11n-cls 1.0.0',
+          price:typeof (data.price??data.reference_price)==='number'?(data.price??data.reference_price):null,
+          priceSource:data.price_source||data.source||null,
           fromPi:true,
         },
       };
