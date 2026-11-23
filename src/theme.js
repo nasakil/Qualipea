@@ -1,0 +1,10 @@
+import {createContext,useContext} from 'react';
+import {Dimensions} from 'react-native';
+export const W=Dimensions.get('window').width;
+export const LT={bg:'#eef3ec',card:'#fff',ink:'#14261c',mute:'#667a6d',line:'#dbe3d6',g2:'#1f6a49'};
+export const DK={bg:'#0d1711',card:'#152119',ink:'#eaf2ea',mute:'#8fa597',line:'#24372b',g2:'#2f8a5f'};
+export const Th=createContext(LT),useT=()=>useContext(Th);
+export const AnimCtx=createContext(true),useAnim=()=>useContext(AnimCtx);
+export const GR='#123d2b',GOLD='#e3a63b',GC={A:'#23975f',B:'#d99a1c',C:'#c2453d'};
+export const COL={A:['#f0c27a','#b9772c'],B:['#dba35e','#98602a'],C:['#a8763f','#573619']};
+export const pc=c=>Math.round(c*100);

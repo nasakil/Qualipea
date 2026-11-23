@@ -1,0 +1,3 @@
+export const GN={A:['Grade A','Premium quality'],B:['Grade B','Intermediate quality'],C:['Grade C','Quality concern']};
+export const ADV={A:['Sort apart from lower grades','Store cool and dry in a sealed container','Keep the scan record for batch notes'],B:['Inspect kernels that look inconsistent','Decide with your buyer if they suit processing','Re-scan doubtful kernels in the same light'],C:['Set these kernels aside','Ask a qualified assessor before use or sale','A photo alone is not a food-use decision']};
+export const SEED=[{g:'A',c:.93,d:0,tm:'9:42'},{g:'B',c:.87,d:0,tm:'9:40'},{g:'A',c:.91,d:0,tm:'9:37'},{g:'C',c:.71,d:1,tm:'4:10',r:1},{g:'B',c:.82,d:1,tm:'2:25'},{g:'A',c:.95,d:1,tm:'11:02'},{g:'C',c:.88,d:2,tm:'Mon'}];
