@@ -1,7 +1,7 @@
 import React,{useState} from 'react';
 import {View,Text,Pressable,ScrollView,TextInput,KeyboardAvoidingView,Platform} from 'react-native';
 import {LinearGradient} from 'expo-linear-gradient';
-import Svg,{Path,Circle,Line,Ellipse} from 'react-native-svg';
+import Svg,{Path,Circle,Ellipse,Defs,RadialGradient,Stop,G} from 'react-native-svg';
 import {Ionicons} from '@expo/vector-icons';
 import {GC,GS,GOLD,normGrade,pc} from '../theme';
 import {GN,ADV,PRICE_CONFIG,defectById,buildWhySummary} from '../data';
@@ -10,48 +10,67 @@ import {useApp} from '../AppContext';
 import {sfx} from '../sound';
 
 function DefectArt({id,size=48}){
+  const body='M9 35 C9 21, 19 14, 34 15 C45 16, 54 22, 57 30 C59 34, 57 39, 52 42 C44 48, 30 50, 19 47 C12 45, 9 41, 9 35 Z';
+  const shriveledBody='M11 36 C12 24, 21 20, 33 22 C43 23, 52 24, 55 31 C57 36, 51 41, 42 42 C31 44, 19 44, 13 40 Z';
+  const isDark=id==='moldy'||id==='insect';
+
   return (
     <Svg width={size} height={size} viewBox="0 0 64 64">
-      {id==='shriveled'?(
-        <>
-          <Path d="M14 34c2-11 10-15 18-13s16 3 18 12c2 9-7 14-18 12S12 43 14 34z" fill="#b77e39"/>
-          <Path d="M22 27c4 4 4 10 0 14M32 25c4 5 4 11 0 16M42 27c3 4 3 9 0 13" stroke="#6b4418" strokeWidth="2.2" fill="none" strokeLinecap="round"/>
-        </>
-      ):(
-        <>
-          <Ellipse cx="32" cy="34" rx="22" ry="15" transform="rotate(-14 32 34)" fill={id==='moldy'||id==='insect'?'#8f6331':'#c98e46'}/>
-          <Path d="M18 29c6-6 17-8 27-2" stroke="#fff5" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-        </>
-      )}
+      <Defs>
+        <RadialGradient id={`df_${id}`} cx="36%" cy="32%" r="76%">
+          <Stop offset="0%" stopColor={isDark?'#b38358':'#e2aa76'}/>
+          <Stop offset="62%" stopColor={isDark?'#7d532f':'#b97340'}/>
+          <Stop offset="100%" stopColor={isDark?'#472b15':'#793f1c'}/>
+        </RadialGradient>
+      </Defs>
 
-      {id==='moldy'&&(
-        <>
-          <Circle cx="26" cy="32" r="6" fill="#4f8f5b" opacity="0.9"/>
-          <Circle cx="36" cy="37" r="7" fill="#3a6e44" opacity="0.9"/>
-          <Circle cx="32" cy="28" r="4" fill="#7ec489" opacity="0.85"/>
-        </>
-      )}
+      <G originX={32} originY={32} rotation={-16}>
+        {id==='shriveled'?(
+          <>
+            <Path d={shriveledBody} fill={`url(#df_${id})`} stroke="#633516" strokeWidth={1.1}/>
+            <Path d="M20 24 C23 29, 23 36, 20 41 M30 23 C33 29, 33 36, 30 42 M40 24 C43 29, 43 35, 40 40" stroke="#5b3012" strokeWidth={1.6} strokeOpacity={0.7} fill="none" strokeLinecap="round"/>
+          </>
+        ):(
+          <>
+            <Path d={body} fill={`url(#df_${id})`} stroke="#5a3014" strokeWidth={1.1} strokeOpacity={0.7}/>
+            <Path d="M16 32 C26 26, 39 25, 50 31" stroke="#683516" strokeWidth={1} strokeOpacity={0.3} fill="none" strokeLinecap="round"/>
+            <Path d="M16 26 C23 20, 35 19, 45 23" stroke="#fff3e0" strokeWidth={2} strokeOpacity={0.38} fill="none" strokeLinecap="round"/>
+          </>
+        )}
 
-      {id==='damaged'&&(
-        <Path d="M31 18 L27 31 L35 35 L30 49" stroke="#241608" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-      )}
+        {id==='moldy'&&(
+          <>
+            <Circle cx={25} cy={31} r={5.5} fill="#4b8555" fillOpacity={0.9}/>
+            <Circle cx={35} cy={36} r={6.5} fill="#34633d" fillOpacity={0.9}/>
+            <Circle cx={31} cy={27} r={3.6} fill="#7dc288" fillOpacity={0.85}/>
+            <Circle cx={40} cy={31} r={2.4} fill="#9cd6a5" fillOpacity={0.75}/>
+          </>
+        )}
 
-      {id==='discolored'&&(
-        <>
-          <Ellipse cx="38" cy="36" rx="10" ry="7" fill="#4b2912" opacity="0.82"/>
-          <Circle cx="24" cy="30" r="4.5" fill="#5e3416" opacity="0.72"/>
-        </>
-      )}
+        {id==='damaged'&&(
+          <>
+            <Path d="M31 15 L28 28 L35 33 L31 48 L39 46 L42 32 L36 27 L38 16 Z" fill="#f3dfc0" fillOpacity={0.9}/>
+            <Path d="M31 15 L28 28 L35 33 L31 48" stroke="#3a1e0b" strokeWidth={2.2} fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+          </>
+        )}
 
-      {id==='insect'&&(
-        <>
-          <Circle cx="25" cy="33" r="3.2" fill="#1e1207"/>
-          <Circle cx="37" cy="30" r="2.8" fill="#1e1207"/>
-          <Circle cx="34" cy="40" r="2.5" fill="#1e1207"/>
-          <Circle cx="42" cy="37" r="1.4" fill="#e6cfa3"/>
-          <Circle cx="29" cy="41" r="1.4" fill="#e6cfa3"/>
-        </>
-      )}
+        {id==='discolored'&&(
+          <>
+            <Ellipse cx={38} cy={35} rx={10} ry={6.5} fill="#3e200c" fillOpacity={0.82}/>
+            <Circle cx={23} cy={29} r={4.5} fill="#542c11" fillOpacity={0.72}/>
+          </>
+        )}
+
+        {id==='insect'&&(
+          <>
+            <Circle cx={24} cy={32} r={2.8} fill="#1b0f06"/>
+            <Circle cx={36} cy={29} r={2.5} fill="#1b0f06"/>
+            <Circle cx={33} cy={39} r={2.3} fill="#1b0f06"/>
+            <Circle cx={41} cy={35} r={1.3} fill="#ebd6b0"/>
+            <Circle cx={28} cy={39} r={1.2} fill="#ebd6b0"/>
+          </>
+        )}
+      </G>
     </Svg>
   );
 }
