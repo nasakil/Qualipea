@@ -62,8 +62,27 @@ export default function Dashboard(){
         end={{x:1,y:1}}
         style={{borderRadius:30,padding:22}}
       >
-        <Text style={{color:'#ffffffb8',fontSize:14,fontWeight:'600'}}>Total scans</Text>
-        <Text style={{color:'#fff',fontSize:52,fontWeight:'800',letterSpacing:-1,marginTop:2}}>{hist.length}</Text>
+        <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'flex-start'}}>
+          <View>
+            <Text style={{color:'#ffffffb8',fontSize:14,fontFamily:'OpenRunde-Semibold'}}>Total scans</Text>
+            <Text style={{color:'#fff',fontSize:52,fontFamily:'OpenRunde-Bold',letterSpacing:-1,marginTop:2}}>{hist.length}</Text>
+          </View>
+          <View style={{
+            backgroundColor:'rgba(255,255,255,0.12)',
+            borderWidth:1,
+            borderColor:'rgba(255,255,255,0.16)',
+            borderRadius:18,
+            paddingHorizontal:14,
+            paddingVertical:10,
+            alignItems:'flex-end',
+          }}>
+            <Text style={{color:'#ffffffb8',fontSize:12,fontFamily:'OpenRunde-Semibold'}}>Avg scans</Text>
+            <Text style={{color:'#fff',fontSize:22,fontFamily:'OpenRunde-Bold',marginTop:2}}>
+              {(hist.length/7).toFixed(1)}
+              <Text style={{fontSize:12.5,color:'#ffffffb8',fontFamily:'OpenRunde-Medium'}}> / day</Text>
+            </Text>
+          </View>
+        </View>
         <View style={{flexDirection:'row',gap:4,height:12,marginVertical:12}}>
           {GRADES.map(x=>(
             <View key={x} style={{flex:c[x]||.001,backgroundColor:GC[x],borderRadius:9}}/>
