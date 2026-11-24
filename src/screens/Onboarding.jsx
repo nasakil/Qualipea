@@ -200,6 +200,8 @@ export default function Onboarding(){
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{flexGrow:1}}
+          style={{flex:1}}
           keyExtractor={x=>x[0]}
           getItemLayout={(_,index)=>({length:pageW,offset:pageW*index,index})}
           onMomentumScrollEnd={e=>{
@@ -207,8 +209,8 @@ export default function Onboarding(){
             if(idx>=0&&idx<OB.length)setOi(idx);
           }}
           renderItem={({item,index})=>(
-            <View style={{width:pageW,flex:1,alignItems:'center',justifyContent:'center',paddingHorizontal:30}}>
-              <View style={{height:240,alignItems:'center',justifyContent:'center',marginBottom:24}}>
+            <View style={{width:pageW,height:'100%',alignItems:'center',justifyContent:'center',paddingHorizontal:30,paddingTop:24}}>
+              <View style={{height:250,alignItems:'center',justifyContent:'center',marginBottom:32}}>
                 <View style={{position:'absolute',top:12,right:-26}}>
                   <Sparkle size={30} color={GOLD}/>
                 </View>
