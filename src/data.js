@@ -9,24 +9,24 @@ export const GN={
 
 export const ADV={
   'Extra Class':[
-    'Excellent quality — sort apart from lower classes to preserve premium value',
-    'Store cool and dry in a clean, sealed container',
-    'Keep the scan record for batch and buyer notes',
+    'Keep separate from lower classes',
+    'Store cool & dry in sealed containers',
+    'Log scan for premium buyer pricing',
   ],
   'Class I':[
-    'Very good quality — suitable for selling as whole kernels',
-    'Remove any stray defective kernels before final packing',
-    'Store in a cool, dry container to maintain freshness',
+    'Ready to sell as whole kernels',
+    'Pick out any stray damaged pieces',
+    'Store sealed in a cool, dry place',
   ],
   'Class II':[
-    'Acceptable batch — remove visible defects first to protect your selling price',
-    'Inspect kernels that look split, shriveled, or lightly stained',
-    'Decide with your buyer if this lot suits processing (peanut butter or oil)',
+    'Remove split or stained kernels first',
+    'Sell as Class II or for peanut butter / oil',
+    'Use sooner — broken kernels spoil faster',
   ],
   'Defect':[
-    'Set defective kernels aside immediately and keep away from good batches',
-    'Ask a qualified assessor before use or sale — never sell or feed moldy kernels',
-    'Re-sort the batch, remove defective kernels, and scan again',
+    'Isolate away from good batches right away',
+    'Never sell or feed moldy kernels',
+    'Re-sort the batch and scan again',
   ],
 };
 
@@ -49,9 +49,9 @@ export const DEFECT_CATALOG=[
     icon:'warning-outline',
     color:'#c2453d',
     steps:[
-      'Remove moldy kernels right away and keep them away from the good batch.',
-      'Do not eat, sell or feed them to animals. Mold can produce aflatoxin, which cooking does not remove.',
-      'Clean and dry the sorting area and containers, then re-dry the remaining batch before storing.',
+      'Remove moldy kernels immediately',
+      'Do not eat, sell, or feed (aflatoxin risk)',
+      'Clean containers & re-dry the rest',
     ],
   },
   {
@@ -63,9 +63,9 @@ export const DEFECT_CATALOG=[
     icon:'cut-outline',
     color:'#d99a1c',
     steps:[
-      'Separate broken and split kernels from the whole ones.',
-      'Sell or use them separately (for example for peanut butter or oil) instead of mixing them into whole-kernel grades.',
-      'Use them sooner. Broken kernels spoil faster in storage.',
+      'Separate split kernels from whole ones',
+      'Use for peanut butter or oil processing',
+      'Sell or use sooner to prevent spoilage',
     ],
   },
   {
@@ -77,9 +77,9 @@ export const DEFECT_CATALOG=[
     icon:'color-fill-outline',
     color:'#b8732a',
     steps:[
-      'Set discolored kernels aside and check a few for a musty or rancid smell.',
-      'If they smell musty or rancid, discard them.',
-      'If they look and smell normal, sell them as a lower grade.',
+      'Set stained kernels aside & check odor',
+      'Discard if musty or rancid',
+      'Sell as lower grade if smell is normal',
     ],
   },
   {
@@ -91,9 +91,9 @@ export const DEFECT_CATALOG=[
     icon:'contract-outline',
     color:'#c78a22',
     steps:[
-      'Sieve or hand-sort to remove shriveled kernels.',
-      'Sell them separately as a lower grade or use them for processing.',
-      'Shriveling is often linked to early harvest or poor growing conditions, so note which field the batch came from.',
+      'Sieve or hand-sort out thin kernels',
+      'Sell separately or send for processing',
+      'Note field source for harvest tracking',
     ],
   },
   {
@@ -105,9 +105,9 @@ export const DEFECT_CATALOG=[
     icon:'bug-outline',
     color:'#c2453d',
     steps:[
-      'Isolate damaged kernels and check the rest of the batch for live insects.',
-      'Clean the storage area and keep kernels in clean, sealed containers.',
-      'Store in a cool, dry place and inspect the batch regularly.',
+      'Isolate & inspect batch for live pests',
+      'Clean storage & seal tightly',
+      'Keep cool, dry, and check regularly',
     ],
   },
 ];
