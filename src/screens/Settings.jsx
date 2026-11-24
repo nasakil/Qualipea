@@ -2,16 +2,89 @@ import React,{useState} from 'react';
 import {View,Text,Pressable,ScrollView,Switch,TextInput} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {GC} from '../theme';
-import {TROUBLESHOOT_STEPS,HARDWARE_SPECS,SOFTWARE_SPECS} from '../data';
+import {HARDWARE_SPECS,SOFTWARE_SPECS} from '../data';
 import {Card,Txt,Btn,Chip} from '../components';
 import Top from '../components/Top';
 import {useApp} from '../AppContext';
 import {sfx} from '../sound';
 
+const TEAM_MEMBERS=[
+  ['NA','Asakil, Norman B.'],
+  ['DG','Gonzales, Daniella A.'],
+  ['KJ','Jimenez, Kiesha Mae C.'],
+  ['MS','Simo, Melgen II A.'],
+];
+
 export default function Settings(){
-  const {snd,toggleSnd,anim,toggleAnim,piUrl,setPiUrl,dark,setDark,T,demo,dev,dg,connect,toggleDemo,askExit,runDiag}=useApp();
-  const [showTrouble,setShowTrouble]=useState(false);
+  const {snd,toggleSnd,anim,toggleAnim,piUrl,setPiUrl,dark,setDark,T,demo,dev,dg,connect,toggleDemo,askExit,runDiag,setSheet,close}=useApp();
   const [showSpecs,setShowSpecs]=useState(false);
+
+  const openTeamSheet=()=>{
+    sfx('tap');
+    setSheet({
+      node:(
+        <View style={{width:'100%',alignItems:'center'}}>
+          <View style={{
+            width:58,
+            height:58,
+            borderRadius:20,
+            backgroundColor:T.g2+'22',
+            alignItems:'center',
+            justifyContent:'center',
+          }}>
+            <Ionicons name="people-outline" size={28} color={T.g2}/>
+          </View>
+          <Txt s={23} w="800" style={{marginTop:12,textAlign:'center'}}>Team QualiPea</Txt>
+          <Txt s={13.5} c={T.mute} style={{marginTop:6,textAlign:'center',lineHeight:19,maxWidth:295}}>
+            QualiPea is a mobile app and imaging chamber that grades Spanish peanut kernels using computer vision.
+          </Txt>
+
+          <View style={{
+            width:'100%',
+            marginTop:16,
+            padding:12,
+            borderRadius:22,
+            backgroundColor:dark?'#0f1913':T.bg,
+            borderWidth:1,
+            borderColor:T.line,
+            gap:8,
+          }}>
+            <Txt s={11.5} w="800" c={T.g2} style={{marginLeft:4,marginBottom:2}}>DEVELOPED BY</Txt>
+            {TEAM_MEMBERS.map(([initials,name])=>(
+              <View
+                key={name}
+                style={{
+                  flexDirection:'row',
+                  alignItems:'center',
+                  gap:11,
+                  paddingVertical:6,
+                  paddingHorizontal:6,
+                }}
+              >
+                <View style={{
+                  width:34,
+                  height:34,
+                  borderRadius:12,
+                  backgroundColor:T.g2+'22',
+                  alignItems:'center',
+                  justifyContent:'center',
+                }}>
+                  <Text style={{color:T.g2,fontFamily:'OpenRunde-Bold',fontSize:12}}>{initials}</Text>
+                </View>
+                <Txt s={14.5} w="700">{name}</Txt>
+              </View>
+            ))}
+          </View>
+
+          <Txt s={12.5} c={T.mute} style={{marginTop:14,textAlign:'center',lineHeight:18}}>
+            Holy Cross of Davao College{'\n'}Bachelor of Science in Information Technology · 4th Year
+          </Txt>
+          <Txt s={11.5} c={T.mute} style={{marginTop:6}}>QualiPea · Version 1.0.0</Txt>
+        </View>
+      ),
+      btns:[['Close','sec',close]],
+    });
+  };
   const on=dev===1;
   const R=[
     ['hardware-chip-outline','Raspberry Pi 5',on,on?`Connected (${piUrl.replace(/^https?:\/\//,'')})`:dev===2?'Connecting…':`Offline · ${piUrl.replace(/^https?:\/\//,'')}`],
@@ -32,7 +105,29 @@ export default function Settings(){
 
   return (
     <ScrollView contentContainerStyle={{paddingHorizontal:20,paddingBottom:145}} showsVerticalScrollIndicator={false}>
-      <Top title="Settings"/>
+      <Top
+        title="Settings"
+        right={
+          <Pressable
+            onPress={openTeamSheet}
+            style={({pressed})=>({
+              flexDirection:'row',
+              alignItems:'center',
+              gap:6,
+              paddingHorizontal:13,
+              paddingVertical:9,
+              borderRadius:99,
+              backgroundColor:T.card,
+              borderWidth:1,
+              borderColor:T.line,
+              transform:[{scale:pressed&&anim?0.95:1}],
+            })}
+          >
+            <Ionicons name="people-outline" size={16} color={T.g2}/>
+            <Text style={{color:T.ink,fontFamily:'OpenRunde-Bold',fontSize:12.5}}>Team</Text>
+          </Pressable>
+        }
+      />
       <Card style={{borderWidth:1,borderColor:T.line}}>
         <Txt s={13.5} c={T.mute}>System status</Txt>
         <Txt s={23} w="800" style={{marginTop:2}}>
@@ -116,44 +211,6 @@ export default function Settings(){
             <Switch value={v} onValueChange={f} trackColor={{false:T.line,true:T.g2}}/>
           </View>
         ))}
-      </Card>
-
-      <Card style={{marginTop:14,borderWidth:1,borderColor:T.line,padding:0,overflow:'hidden'}}>
-        <Pressable
-          onPress={()=>{sfx('tap');setShowTrouble(v=>!v)}}
-          style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',padding:16}}
-        >
-          <View style={{flexDirection:'row',alignItems:'center',gap:12,flex:1}}>
-            <View style={{width:38,height:38,borderRadius:12,backgroundColor:T.g2+'22',alignItems:'center',justifyContent:'center'}}>
-              <Ionicons name="construct-outline" size={20} color={T.g2}/>
-            </View>
-            <View style={{flex:1}}>
-              <Txt s={15.5} w="700">Chamber setup &amp; troubleshooting</Txt>
-              <Txt s={12.5} c={T.mute}>7-step Raspberry Pi SSH &amp; stream guide</Txt>
-            </View>
-          </View>
-          <Ionicons name={showTrouble?'chevron-up':'chevron-down'} size={20} color={T.mute}/>
-        </Pressable>
-
-        {showTrouble&&(
-          <View style={{paddingHorizontal:16,paddingBottom:16,borderTopWidth:1,borderTopColor:T.line,gap:12,paddingTop:14}}>
-            {TROUBLESHOOT_STEPS.map(([text,cmd],idx)=>(
-              <View key={idx} style={{flexDirection:'row',gap:10}}>
-                <View style={{width:24,height:24,borderRadius:12,backgroundColor:T.g2+'24',alignItems:'center',justifyContent:'center',marginTop:1}}>
-                  <Text style={{color:T.g2,fontWeight:'800',fontSize:12}}>{idx+1}</Text>
-                </View>
-                <View style={{flex:1,gap:6}}>
-                  <Txt s={13.5} style={{lineHeight:19}}>{text}</Txt>
-                  {cmd&&(
-                    <View style={{backgroundColor:T.bg,borderWidth:1,borderColor:T.line,borderRadius:10,paddingHorizontal:11,paddingVertical:8}}>
-                      <Text selectable style={{color:T.g2,fontFamily:'monospace',fontSize:12.5,fontWeight:'700'}}>{cmd}</Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
       </Card>
 
       <Card style={{marginTop:14,borderWidth:1,borderColor:T.line,padding:0,overflow:'hidden'}}>
