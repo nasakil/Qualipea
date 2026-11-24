@@ -121,7 +121,7 @@ export default function TabBar(){
               minimumFontScale={0.85}
               style={{
                 fontSize:11,
-                fontWeight:active?'700':'500',
+                fontFamily:active?'OpenRunde-Bold':'OpenRunde-Medium',
                 color:active?T.g2:T.mute,
               }}
             >

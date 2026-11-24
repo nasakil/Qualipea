@@ -45,4 +45,12 @@ export function normGrade(raw){
   return 'Class I';
 }
 
+export function fontForWeight(w){
+  const s=String(w||'400').toLowerCase();
+  if(s==='700'||s==='800'||s==='900'||s==='bold')return 'OpenRunde-Bold';
+  if(s==='600')return 'OpenRunde-Semibold';
+  if(s==='500')return 'OpenRunde-Medium';
+  return 'OpenRunde-Regular';
+}
+
 export const pc=c=>Math.round((c||0)*100);

@@ -29,7 +29,7 @@ export const Btn=({t,onPress,kind,icon,busy})=>{
       })}
     >
       {busy?<ActivityIndicator color={fg}/>:icon&&<Ionicons name={icon} size={20} color={fg}/>}
-      <Text style={{color:fg,fontWeight:'700',fontSize:16}}>{t}</Text>
+      <Text style={{color:fg,fontFamily:'OpenRunde-Bold',fontSize:16}}>{t}</Text>
     </Pressable>
   );
 };

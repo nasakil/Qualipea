@@ -246,9 +246,9 @@ export default function Onboarding(){
               <Text style={{
                 color:dark?T.ink:'#101813',
                 fontSize:30,
-                fontWeight:'800',
+                fontFamily:'OpenRunde-Bold',
                 textAlign:'center',
-                letterSpacing:-0.7,
+                letterSpacing:-0.6,
                 lineHeight:36,
               }}>
                 {item[0]}
@@ -256,6 +256,7 @@ export default function Onboarding(){
               <Text style={{
                 color:dark?T.mute:'#5f6e65',
                 fontSize:15.5,
+                fontFamily:'OpenRunde-Regular',
                 textAlign:'center',
                 marginTop:10,
                 lineHeight:22,
@@ -313,7 +314,7 @@ export default function Onboarding(){
           <Text style={{
             color:dark?'#1a1203':'#ffffff',
             fontSize:16,
-            fontWeight:'700',
+            fontFamily:'OpenRunde-Bold',
           }}>
             {oi===3?'Get Started':'Continue'}
           </Text>
