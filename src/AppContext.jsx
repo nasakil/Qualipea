@@ -1,8 +1,8 @@
 import React,{createContext,useContext,useState,useEffect,useRef} from 'react';
 import {View,Text,Pressable,Animated,Image,useColorScheme} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {GR,GC,pc,LT,DK,Th,AnimCtx} from './theme';
-import {GN,SEED} from './data';
+import {GR,GC,GRADES,normGrade,pc,LT,DK,Th,AnimCtx} from './theme';
+import {GN,SEED,buildWhySummary} from './data';
 import {Kernel,Card,Txt} from './components';
 import {sfx,setSfx,initAudio} from './sound';
 import {DEFAULT_PI_URL,normalizeUrl,checkPiHealth,classifyKernel} from './api';
@@ -44,6 +44,8 @@ export function AppProvider({children}){
   const [snd,setSnd]=useState(true);
   const [anim,setAnim]=useState(true);
   const [piUrl,setPiUrl]=useState(DEFAULT_PI_URL);
+  const [recScan,setRecScan]=useState(null);
+  const [zoomImg,setZoomImg]=useState(null);
 
   const hist=demo?hd:hr;
   const setHist=demo?setHd:setHr;
@@ -64,7 +66,13 @@ export function AppProvider({children}){
           if(typeof saved.snd==='boolean'){setSnd(saved.snd);setSfx(saved.snd)}
           if(typeof saved.demo==='boolean')setDemo(saved.demo);
           if(typeof saved.piUrl==='string'&&saved.piUrl.trim())setPiUrl(saved.piUrl);
-          if(Array.isArray(saved.hr))setHr(saved.hr);
+          if(Array.isArray(saved.hr)){
+            setHr(saved.hr.map(item=>({
+              ...item,
+              g:normGrade(item.g),
+              x:item.x?normGrade(item.x):undefined,
+            })));
+          }
         }
       }catch(_){}
       finally{
@@ -202,11 +210,20 @@ export function AppProvider({children}){
 
   const makeFallbackResult=(img)=>{
     const r=Math.random();
-    const g=r<.45?'A':r<.8?'B':'C';
-    const c=.6+Math.random()*.38;
-    const o=['A','B','C'].filter(x=>x!==g);
-    const sp=Math.random()*.6+.2;
-    return {g,c,rv:c<.75,img:img||null,p:{[g]:c,[o[0]]:(1-c)*sp,[o[1]]:(1-c)*(1-sp)}};
+    const g=r<.32?'Extra Class':r<.62?'Class I':r<.85?'Class II':'Defect';
+    const c=.62+Math.random()*.35;
+    const o=GRADES.filter(x=>x!==g);
+    const rem=Math.max(0,1-c);
+    const w1=0.5+Math.random()*0.2;
+    const w2=(1-w1)*0.65;
+    const w3=1-w1-w2;
+    return {
+      g,
+      c,
+      rv:c<.75,
+      img:img||null,
+      p:{[g]:c,[o[0]]:rem*w1,[o[1]]:rem*w2,[o[2]]:rem*w3},
+    };
   };
 
   const analyze=async()=>{
@@ -265,18 +282,33 @@ export function AppProvider({children}){
     setSaving(true);
     setTimeout(()=>{
       setSaving(false);
-      setHist([{g:cur.g,c:cur.c,d:0,tm:'Just now',r:cur.rv,img:cur.img||null},...hist]);
+      const entry={
+        id:'scan-'+Date.now(),
+        g:cur.g,
+        c:cur.c,
+        d:0,
+        tm:'Just now',
+        ts:Date.now(),
+        r:cur.rv,
+        img:cur.img||null,
+        p:cur.p||null,
+        defects:cur.defects||[],
+        kg:cur.kg||null,
+        price:cur.price||null,
+        reason:cur.reason||null,
+      };
+      setHist([entry,...hist]);
       sfx('save');
       setSheet({
         ok:1,
         title:'Result saved',
-        body:`Grade ${cur.g} was added to your history${cur.rv?', flagged for expert review':''}.`,
+        body:`${cur.g} was added to your history${cur.rv?', flagged for expert review':''}.`,
         btns:[
           ['Scan another','sec',()=>{close();startScan()}],
           ['View history','',()=>{close();goTab('hist')}],
         ],
       });
-    },1100);
+    },900);
   };
 
   const askExit=()=>setSheet({
@@ -307,6 +339,60 @@ export function AppProvider({children}){
     detail(i,h);
   };
 
+  const openRecommendations=(scanObj,histIdx=null,fromHistory=false)=>{
+    if(!scanObj)return;
+    const payload={...scanObj,g:normGrade(scanObj.g),histIdx,fromHistory};
+    setRecScan(payload);
+    close();
+    const g=normGrade(scanObj.x||scanObj.g);
+    if(g==='Extra Class'||(Array.isArray(scanObj.defects)&&scanObj.defects.length>0)){
+      setScr('recs',1);
+    }else{
+      setScr('defects',1);
+    }
+  };
+
+  const saveScanDefects=(defects)=>{
+    setRecScan(prev=>prev?{...prev,defects}:prev);
+    if(recScan&&recScan.histIdx!==null&&recScan.histIdx!==undefined){
+      const next=[...hist];
+      if(next[recScan.histIdx]){
+        next[recScan.histIdx]={...next[recScan.histIdx],defects};
+        setHist(next);
+      }
+    }else if(cur){
+      setCur(prev=>prev?{...prev,defects}:prev);
+    }
+  };
+
+  const saveScanKg=(kg)=>{
+    setRecScan(prev=>prev?{...prev,kg}:prev);
+    if(recScan&&recScan.histIdx!==null&&recScan.histIdx!==undefined){
+      const next=[...hist];
+      if(next[recScan.histIdx]){
+        next[recScan.histIdx]={...next[recScan.histIdx],kg};
+        setHist(next);
+      }
+    }else if(cur){
+      setCur(prev=>prev?{...prev,kg}:prev);
+    }
+  };
+
+  const confirmDelete=(i)=>{
+    const h=hist[i];
+    if(!h)return;
+    setSheet({
+      ic:'trash-outline',
+      bad:1,
+      title:'Delete this scan?',
+      body:`${GN[h.g][0]} (${pc(h.c)}%) will be permanently removed from your history. This can’t be undone.`,
+      btns:[
+        ['Cancel','sec',()=>detail(i)],
+        ['Delete','red',()=>removeScan(i)],
+      ],
+    });
+  };
+
   const removeScan=(i)=>{
     const next=hist.filter((_,idx)=>idx!==i);
     setHist(next);
@@ -318,45 +404,51 @@ export function AppProvider({children}){
     const h=list[i];
     if(!h)return;
     const scannedLabel=h.d?['','Yesterday','Earlier'][h.d]:(h.tm==='Just now'||h.tm==='Now'?'Just now':'Today '+h.tm);
+    const why=buildWhySummary(h);
     const rows=[
       ['Confidence',pc(h.c)+'%'],
       ['Scanned',scannedLabel],
-      ['Model','yolo11n-cls 1.0.0'],
+      ['Model',h.model||'yolo11n-cls 1.0.0'],
       ['Status',h.r?'Flagged for review':'Confident'],
-      ...(h.x?[['Expert grade','Grade '+h.x]]:[]),
+      ...(h.x?[['Expert class',h.x]]:[]),
+      ...(h.kg?[['Batch weight',`${h.kg} kg`]]:[]),
     ];
     setSheet({
       node:(
         <View style={{width:'100%',alignItems:'center'}}>
-          <View style={{
-            width:104,
-            height:104,
-            borderRadius:26,
-            backgroundColor:dark?'#26231d':'#f1ece2',
-            borderWidth:1,
-            borderColor:T.line,
-            alignItems:'center',
-            justifyContent:'center',
-            alignSelf:'center',
-            marginTop:4,
-            overflow:'hidden',
-            shadowColor:'#000',
-            shadowOpacity:dark?.35:.08,
-            shadowRadius:12,
-            shadowOffset:{width:0,height:4},
-          }}>
+          <Pressable
+            onPress={()=>{if(h.img){sfx('tap');setZoomImg(h.img)}}}
+            style={{
+              width:104,
+              height:104,
+              borderRadius:26,
+              backgroundColor:dark?'#26231d':'#f1ece2',
+              borderWidth:1,
+              borderColor:T.line,
+              alignItems:'center',
+              justifyContent:'center',
+              alignSelf:'center',
+              marginTop:4,
+              overflow:'hidden',
+              shadowColor:'#000',
+              shadowOpacity:dark?.35:.08,
+              shadowRadius:12,
+              shadowOffset:{width:0,height:4},
+            }}
+          >
             {h.img?(
               <Image source={{uri:h.img}} style={{width:'100%',height:'100%'}} resizeMode="cover"/>
             ):(
               <Kernel g={h.g} size={76} rot={-18}/>
             )}
-          </View>
-          <Txt s={26} w="800" style={{textAlign:'center',marginTop:14}}>{GN[h.g][0]}</Txt>
-          <Txt s={14.5} c={T.mute} style={{textAlign:'center',marginTop:4}}>{GN[h.g][1]}</Txt>
+          </Pressable>
+          {h.img&&<Txt s={11.5} c={T.mute} style={{marginTop:5}}>Tap photo to zoom</Txt>}
+          <Txt s={26} w="800" style={{textAlign:'center',marginTop:10}}>{GN[h.g][0]}</Txt>
+          <Txt s={14} c={T.mute} style={{textAlign:'center',marginTop:3}}>{why.headline}</Txt>
 
           <Card style={{
             width:'100%',
-            marginTop:18,
+            marginTop:14,
             backgroundColor:dark?'#0f1913':T.bg,
             borderWidth:1,
             borderColor:T.line,
@@ -373,29 +465,29 @@ export function AppProvider({children}){
                   flexDirection:'row',
                   justifyContent:'space-between',
                   alignItems:'center',
-                  paddingVertical:13,
+                  paddingVertical:11,
                   borderTopWidth:idx===0?0:1,
                   borderTopColor:T.line,
                 }}
               >
-                <Txt s={14.5} c={T.mute}>{a}</Txt>
-                <Txt s={14.5} w="700">{b}</Txt>
+                <Txt s={14} c={T.mute}>{a}</Txt>
+                <Txt s={14} w="700">{b}</Txt>
               </View>
             ))}
           </Card>
 
-          <View style={{width:'100%',marginTop:18}}>
-            <Txt s={15.5} w="700">Expert correction</Txt>
-            <View style={{flexDirection:'row',gap:10,marginTop:12,marginBottom:10}}>
-              {['A','B','C'].map(x=>{
+          <View style={{width:'100%',marginTop:14}}>
+            <Txt s={15} w="700">Expert correction</Txt>
+            <View style={{flexDirection:'row',flexWrap:'wrap',gap:8,marginTop:10,marginBottom:8}}>
+              {GRADES.map(x=>{
                 const active=h.x===x;
                 return (
                   <Pressable
                     key={x}
                     onPress={()=>{sfx('tap');fix(i,x)}}
                     style={({pressed})=>({
-                      paddingHorizontal:18,
-                      paddingVertical:10,
+                      paddingHorizontal:14,
+                      paddingVertical:8,
                       borderRadius:99,
                       backgroundColor:active?GR:(dark?'#142119':T.bg),
                       borderWidth:1,
@@ -403,18 +495,18 @@ export function AppProvider({children}){
                       transform:[{scale:pressed&&anim?.96:1}],
                     })}
                   >
-                    <Text style={{fontWeight:'700',fontSize:14,color:active?'#fff':T.mute}}>Grade {x}</Text>
+                    <Text style={{fontWeight:'700',fontSize:13,color:active?'#fff':T.mute}}>{x}</Text>
                   </Pressable>
                 );
               })}
             </View>
-            <Txt s={12.5} c={T.mute}>The model’s original prediction is always kept.</Txt>
+            <Txt s={12} c={T.mute}>The model’s original prediction is always kept.</Txt>
           </View>
         </View>
       ),
       btns:[
-        ['Delete','red',()=>removeScan(i)],
-        ['Close','sec',close],
+        ['Delete','red',()=>confirmDelete(i)],
+        ['Advice & Calc','gold',()=>openRecommendations(h,i,true)],
       ],
     });
   };
@@ -444,7 +536,8 @@ export function AppProvider({children}){
 
   const value={
     snd,toggleSnd,anim,toggleAnim,
-    piUrl,setPiUrl,
+    piUrl,setPiUrl,recScan,setRecScan,zoomImg,setZoomImg,
+    openRecommendations,saveScanDefects,saveScanKg,confirmDelete,
     sys,dark,setDark,T,
     scr,setScr,goTab,navDir,
     oi,setOi,demo,setDemo,dev,setDev,

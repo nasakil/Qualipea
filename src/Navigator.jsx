@@ -7,6 +7,7 @@ import TabBar from './components/TabBar';
 import Toast from './components/Toast';
 import SavingOverlay from './components/SavingOverlay';
 import SheetModal from './components/SheetModal';
+import ImageViewerModal from './components/ImageViewerModal';
 import Splash from './screens/Splash';
 import Onboarding from './screens/Onboarding';
 import Home from './screens/Home';
@@ -14,6 +15,8 @@ import ScanPrep from './screens/ScanPrep';
 import Scanner from './screens/Scanner';
 import Processing from './screens/Processing';
 import Result from './screens/Result';
+import DefectSelection from './screens/DefectSelection';
+import Recommendations from './screens/Recommendations';
 import History from './screens/History';
 import Dashboard from './screens/Dashboard';
 import Settings from './screens/Settings';
@@ -26,29 +29,33 @@ const MAP={
   cam:Scanner,
   proc:Processing,
   res:Result,
+  defects:DefectSelection,
+  recs:Recommendations,
   hist:History,
   dash:Dashboard,
   set:Settings,
 };
 
 export default function Navigator(){
-  const {T,scr,dark,tabs,goTab,setScr,askDiscard,askExit,sheet,close,navDir,anim}=useApp();
+  const {T,scr,dark,tabs,goTab,setScr,askDiscard,askExit,sheet,close,zoomImg,setZoomImg,recScan,navDir,anim}=useApp();
   const Screen=MAP[scr];
 
   const enterX=useRef(new Animated.Value(0)).current;
   const enterOp=useRef(new Animated.Value(1)).current;
   const dragX=useRef(new Animated.Value(0)).current;
 
-  const stateRef=useRef({scr,tabs,anim,goTab,setScr,askDiscard,askExit,sheet,close});
-  stateRef.current={scr,tabs,anim,goTab,setScr,askDiscard,askExit,sheet,close};
+  const stateRef=useRef({scr,tabs,anim,goTab,setScr,askDiscard,askExit,sheet,close,zoomImg,setZoomImg,recScan});
+  stateRef.current={scr,tabs,anim,goTab,setScr,askDiscard,askExit,sheet,close,zoomImg,setZoomImg,recScan};
 
   useEffect(()=>{
     const sub=BackHandler.addEventListener('hardwareBackPress',()=>{
       const s=stateRef.current;
+      if(s.zoomImg){s.setZoomImg(null);return true}
       if(s.sheet){
         if(!s.sheet.lock)s.close();
         return true;
       }
+      if(s.scr==='defects'||s.scr==='recs'){s.setScr(s.recScan?.fromHistory?'hist':'res',-1);return true}
       if(s.scr==='res'){s.askDiscard();return true}
       if(s.scr==='prep'||s.scr==='cam'){s.setScr('home',-1);return true}
       if(s.scr==='proc')return true;
@@ -152,6 +159,7 @@ export default function Navigator(){
       <Toast/>
       <SavingOverlay/>
       <SheetModal/>
+      <ImageViewerModal/>
     </View>
   );
 }

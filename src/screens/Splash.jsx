@@ -200,18 +200,19 @@ export default function Splash(){
           <Text style={{
             color:'#f4faf6',
             fontSize:46,
-            fontWeight:'900',
-            letterSpacing:-1.6,
+            fontFamily:'OpenRunde-Bold',
+            letterSpacing:-1.4,
             lineHeight:50,
           }}>
             Grade every{'\n'}
-            <Text style={{color:GOLD}}>kernel</Text>{'\n'}
+            <Text style={{color:GOLD,fontFamily:'OpenRunde-Bold'}}>kernel</Text>{'\n'}
             in seconds.
           </Text>
 
           <Text style={{
             color:'#93b09f',
             fontSize:16,
+            fontFamily:'OpenRunde-Regular',
             lineHeight:23,
             marginTop:14,
             maxWidth:280,

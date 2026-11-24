@@ -151,7 +151,7 @@ export default function Scanner(){
 
             <View style={{width:220,height:220,alignItems:'center',justifyContent:'center'}}>
               <Brk s={38} c={cap?GC.A:GOLD}/>
-              {demo&&<Kernel g="B" size={130}/>}
+              {demo&&<Kernel g="Class II" size={130}/>}
               {!cap&&anim&&(
                 <Animated.View style={{
                   position:'absolute',

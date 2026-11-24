@@ -1,8 +1,8 @@
-import React,{useEffect,useRef} from 'react';
+import React,{useEffect,useRef,useState} from 'react';
 import {View,Text,Pressable,FlatList,Animated,Easing} from 'react-native';
 import {LinearGradient} from 'expo-linear-gradient';
 import Svg,{Path} from 'react-native-svg';
-import {W,GC,GOLD} from '../theme';
+import {W,GC,GS,GRADES,GOLD} from '../theme';
 import {Kernel,Card,Txt,Chip,Brk} from '../components';
 import {useApp} from '../AppContext';
 import {sfx} from '../sound';
@@ -10,8 +10,8 @@ import {sfx} from '../sound';
 const OB=[
   ['Drop in one kernel.','Place a single peanut kernel on the pad and close the chamber lid.'],
   ['Tap to scan.','The camera captures the kernel and checks lighting in seconds.'],
-  ['Get a clear grade.','Grade A, B or C with confidence scores and expert review flags.'],
-  ['Price & next steps.','See reference pricing and handling advice, then save to history.'],
+  ['Get a clear class.','Extra Class, Class I, Class II, or Defect with confidence scores and explanations.'],
+  ['Price & next steps.','See PSA reference pricing, defect advice, and save every scan to history.'],
 ];
 
 function Sparkle({size=28,color='#ffffff'}){
@@ -27,6 +27,8 @@ function Sparkle({size=28,color='#ffffff'}){
 
 export default function Onboarding(){
   const {dark,T,setScr,oi,setOi,ob,anim}=useApp();
+  const [pageW,setPageW]=useState(W);
+  const [pageH,setPageH]=useState(0);
   const floatY=useRef(new Animated.Value(0)).current;
 
   useEffect(()=>{sfx('ob'+(oi+1))},[oi]);
@@ -88,25 +90,25 @@ export default function Onboarding(){
         }}>
           <View style={{width:118,height:118,alignItems:'center',justifyContent:'center'}}>
             <Brk s={28} c={T.g2}/>
-            <Kernel g="B" size={82} rot={-18}/>
+            <Kernel g="Class II" size={82} rot={-18}/>
           </View>
         </View>
       );
     }
     if(i===2){
       return (
-        <View style={{flexDirection:'row',gap:12,alignItems:'center'}}>
-          {['A','B','C'].map((x,j)=>(
+        <View style={{flexDirection:'row',gap:9,alignItems:'center'}}>
+          {GRADES.map((x,j)=>(
             <View
               key={x}
               style={{
-                width:64,
-                height:78,
-                borderRadius:22,
+                width:58,
+                height:72,
+                borderRadius:20,
                 backgroundColor:GC[x],
                 alignItems:'center',
                 justifyContent:'center',
-                marginTop:j===1?-20:0,
+                marginTop:j%2===1?-16:0,
                 shadowColor:'#0a2c1a',
                 shadowOpacity:0.2,
                 shadowRadius:14,
@@ -114,7 +116,7 @@ export default function Onboarding(){
                 elevation:8,
               }}
             >
-              <Text style={{color:'#fff',fontWeight:'800',fontSize:32}}>{x}</Text>
+              <Text style={{color:'#fff',fontWeight:'900',fontSize:22}}>{GS[x]}</Text>
             </View>
           ))}
         </View>
@@ -131,9 +133,9 @@ export default function Onboarding(){
         shadowRadius:20,
         elevation:10,
       }}>
-        <Chip t="Grade A" c={GC.A}/>
-        <Txt s={38} w="800">₱92.00</Txt>
-        <Txt s={13} c={T.mute}>per kg, reference price</Txt>
+        <Chip t="Extra Class" c={GC['Extra Class']}/>
+        <Txt s={38} w="800">₱100.00</Txt>
+        <Txt s={13} c={T.mute}>per kg · PSA Region XI reference</Txt>
       </Card>
     );
   };
@@ -192,62 +194,92 @@ export default function Onboarding(){
       </View>
 
       {/* Paged slides */}
-      <FlatList
-        ref={ob}
-        data={OB}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        keyExtractor={x=>x[0]}
-        onMomentumScrollEnd={e=>setOi(Math.round(e.nativeEvent.contentOffset.x/W))}
-        renderItem={({item,index})=>(
-          <View style={{width:W,flex:1,alignItems:'center',justifyContent:'center',paddingHorizontal:30}}>
-            <View style={{height:240,alignItems:'center',justifyContent:'center',marginBottom:24}}>
-              <View style={{position:'absolute',top:12,right:-26}}>
-                <Sparkle size={30} color={GOLD}/>
+      <View
+        style={{flex:1}}
+        onLayout={e=>{
+          const {width,height}=e.nativeEvent.layout;
+          if(width>0)setPageW(width);
+          if(height>0)setPageH(height);
+        }}
+      >
+        <FlatList
+          ref={ob}
+          data={OB}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          style={{flex:1}}
+          keyExtractor={x=>x[0]}
+          getItemLayout={(_,index)=>({length:pageW,offset:pageW*index,index})}
+          onMomentumScrollEnd={e=>{
+            const idx=Math.round(e.nativeEvent.contentOffset.x/pageW);
+            if(idx>=0&&idx<OB.length)setOi(idx);
+          }}
+          renderItem={({item,index})=>(
+            <View style={{
+              width:pageW,
+              height:pageH||undefined,
+              flex:pageH?undefined:1,
+              alignItems:'center',
+              justifyContent:'flex-end',
+              paddingHorizontal:30,
+              paddingBottom:34,
+            }}>
+              <View style={{flex:1,alignItems:'center',justifyContent:'center',paddingTop:24}}>
+                <View style={{alignItems:'center',justifyContent:'center'}}>
+                  <View style={{position:'absolute',top:-14,right:-26}}>
+                    <Sparkle size={30} color={GOLD}/>
+                  </View>
+                  <Animated.View style={{transform:[{translateY:floatY}]}}>
+                    {Scene(index)}
+                  </Animated.View>
+                  <View style={{
+                    width:120,
+                    height:14,
+                    borderRadius:99,
+                    backgroundColor:dark?'rgba(0,0,0,0.35)':'rgba(10,45,25,0.09)',
+                    marginTop:20,
+                  }}/>
+                </View>
               </View>
-              <Animated.View style={{transform:[{translateY:floatY}]}}>
-                {Scene(index)}
-              </Animated.View>
-              <View style={{
-                width:120,
-                height:14,
-                borderRadius:99,
-                backgroundColor:dark?'rgba(0,0,0,0.35)':'rgba(10,45,25,0.09)',
-                marginTop:18,
-              }}/>
-            </View>
 
-            <Text style={{
-              color:dark?T.ink:'#101813',
-              fontSize:30,
-              fontWeight:'800',
-              textAlign:'center',
-              letterSpacing:-0.7,
-              lineHeight:36,
-            }}>
-              {item[0]}
-            </Text>
-            <Text style={{
-              color:dark?T.mute:'#5f6e65',
-              fontSize:15.5,
-              textAlign:'center',
-              marginTop:10,
-              lineHeight:22,
-              maxWidth:295,
-            }}>
-              {item[1]}
-            </Text>
-          </View>
-        )}
-      />
+              <Text style={{
+                color:dark?T.ink:'#101813',
+                fontSize:30,
+                fontFamily:'OpenRunde-Bold',
+                textAlign:'center',
+                letterSpacing:-0.6,
+                lineHeight:36,
+              }}>
+                {item[0]}
+              </Text>
+              <Text style={{
+                color:dark?T.mute:'#5f6e65',
+                fontSize:15.5,
+                fontFamily:'OpenRunde-Regular',
+                textAlign:'center',
+                marginTop:10,
+                lineHeight:22,
+                maxWidth:295,
+              }}>
+                {item[1]}
+              </Text>
+            </View>
+          )}
+        />
+      </View>
 
       {/* Bottom CTA */}
       <View style={{paddingHorizontal:24,paddingBottom:40,gap:14,alignItems:'center'}}>
         <View style={{flexDirection:'row',gap:7,marginBottom:4}}>
           {OB.map((_,i)=>(
-            <View
+            <Pressable
               key={i}
+              onPress={()=>{
+                sfx('tap');
+                setOi(i);
+                ob.current?.scrollToOffset({offset:i*pageW,animated:anim});
+              }}
               style={{
                 width:i===oi?24:7,
                 height:7,
@@ -261,8 +293,13 @@ export default function Onboarding(){
         <Pressable
           onPress={()=>{
             sfx('tap');
-            if(oi===3)setScr('home',1);
-            else ob.current.scrollToIndex({index:oi+1});
+            if(oi>=OB.length-1){
+              setScr('home',1);
+            }else{
+              const next=oi+1;
+              setOi(next);
+              ob.current?.scrollToOffset({offset:next*pageW,animated:anim});
+            }
           }}
           style={({pressed})=>({
             width:'100%',
@@ -277,7 +314,7 @@ export default function Onboarding(){
           <Text style={{
             color:dark?'#1a1203':'#ffffff',
             fontSize:16,
-            fontWeight:'700',
+            fontFamily:'OpenRunde-Bold',
           }}>
             {oi===3?'Get Started':'Continue'}
           </Text>
