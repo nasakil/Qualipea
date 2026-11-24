@@ -1,4 +1,4 @@
-import React,{useEffect,useRef} from 'react';
+import React,{useEffect,useRef,useState} from 'react';
 import {View,Text,Pressable,FlatList,Animated,Easing} from 'react-native';
 import {LinearGradient} from 'expo-linear-gradient';
 import Svg,{Path} from 'react-native-svg';
@@ -27,6 +27,7 @@ function Sparkle({size=28,color='#ffffff'}){
 
 export default function Onboarding(){
   const {dark,T,setScr,oi,setOi,ob,anim}=useApp();
+  const [pageW,setPageW]=useState(W);
   const floatY=useRef(new Animated.Value(0)).current;
 
   useEffect(()=>{sfx('ob'+(oi+1))},[oi]);
@@ -192,62 +193,73 @@ export default function Onboarding(){
       </View>
 
       {/* Paged slides */}
-      <FlatList
-        ref={ob}
-        data={OB}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        keyExtractor={x=>x[0]}
-        onMomentumScrollEnd={e=>setOi(Math.round(e.nativeEvent.contentOffset.x/W))}
-        renderItem={({item,index})=>(
-          <View style={{width:W,flex:1,alignItems:'center',justifyContent:'center',paddingHorizontal:30}}>
-            <View style={{height:240,alignItems:'center',justifyContent:'center',marginBottom:24}}>
-              <View style={{position:'absolute',top:12,right:-26}}>
-                <Sparkle size={30} color={GOLD}/>
+      <View style={{flex:1}} onLayout={e=>{const w=e.nativeEvent.layout.width; if(w>0)setPageW(w)}}>
+        <FlatList
+          ref={ob}
+          data={OB}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={x=>x[0]}
+          getItemLayout={(_,index)=>({length:pageW,offset:pageW*index,index})}
+          onMomentumScrollEnd={e=>{
+            const idx=Math.round(e.nativeEvent.contentOffset.x/pageW);
+            if(idx>=0&&idx<OB.length)setOi(idx);
+          }}
+          renderItem={({item,index})=>(
+            <View style={{width:pageW,flex:1,alignItems:'center',justifyContent:'center',paddingHorizontal:30}}>
+              <View style={{height:240,alignItems:'center',justifyContent:'center',marginBottom:24}}>
+                <View style={{position:'absolute',top:12,right:-26}}>
+                  <Sparkle size={30} color={GOLD}/>
+                </View>
+                <Animated.View style={{transform:[{translateY:floatY}]}}>
+                  {Scene(index)}
+                </Animated.View>
+                <View style={{
+                  width:120,
+                  height:14,
+                  borderRadius:99,
+                  backgroundColor:dark?'rgba(0,0,0,0.35)':'rgba(10,45,25,0.09)',
+                  marginTop:18,
+                }}/>
               </View>
-              <Animated.View style={{transform:[{translateY:floatY}]}}>
-                {Scene(index)}
-              </Animated.View>
-              <View style={{
-                width:120,
-                height:14,
-                borderRadius:99,
-                backgroundColor:dark?'rgba(0,0,0,0.35)':'rgba(10,45,25,0.09)',
-                marginTop:18,
-              }}/>
-            </View>
 
-            <Text style={{
-              color:dark?T.ink:'#101813',
-              fontSize:30,
-              fontWeight:'800',
-              textAlign:'center',
-              letterSpacing:-0.7,
-              lineHeight:36,
-            }}>
-              {item[0]}
-            </Text>
-            <Text style={{
-              color:dark?T.mute:'#5f6e65',
-              fontSize:15.5,
-              textAlign:'center',
-              marginTop:10,
-              lineHeight:22,
-              maxWidth:295,
-            }}>
-              {item[1]}
-            </Text>
-          </View>
-        )}
-      />
+              <Text style={{
+                color:dark?T.ink:'#101813',
+                fontSize:30,
+                fontWeight:'800',
+                textAlign:'center',
+                letterSpacing:-0.7,
+                lineHeight:36,
+              }}>
+                {item[0]}
+              </Text>
+              <Text style={{
+                color:dark?T.mute:'#5f6e65',
+                fontSize:15.5,
+                textAlign:'center',
+                marginTop:10,
+                lineHeight:22,
+                maxWidth:295,
+              }}>
+                {item[1]}
+              </Text>
+            </View>
+          )}
+        />
+      </View>
 
       {/* Bottom CTA */}
       <View style={{paddingHorizontal:24,paddingBottom:40,gap:14,alignItems:'center'}}>
         <View style={{flexDirection:'row',gap:7,marginBottom:4}}>
           {OB.map((_,i)=>(
-            <View
+            <Pressable
               key={i}
+              onPress={()=>{
+                sfx('tap');
+                setOi(i);
+                ob.current?.scrollToOffset({offset:i*pageW,animated:anim});
+              }}
               style={{
                 width:i===oi?24:7,
                 height:7,
@@ -261,8 +273,13 @@ export default function Onboarding(){
         <Pressable
           onPress={()=>{
             sfx('tap');
-            if(oi===3)setScr('home',1);
-            else ob.current.scrollToIndex({index:oi+1});
+            if(oi>=OB.length-1){
+              setScr('home',1);
+            }else{
+              const next=oi+1;
+              setOi(next);
+              ob.current?.scrollToOffset({offset:next*pageW,animated:anim});
+            }
           }}
           style={({pressed})=>({
             width:'100%',
