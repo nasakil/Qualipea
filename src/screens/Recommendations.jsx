@@ -314,32 +314,58 @@ export default function Recommendations(){
               </View>
             </View>
 
-            <View style={{flexDirection:'row',alignItems:'center',gap:12,marginTop:12}}>
-              <View style={{flex:1}}>
+            <View style={{gap:10,marginTop:12}}>
+              <View style={{
+                flexDirection:'row',
+                alignItems:'center',
+                backgroundColor:dark?'#0f1913':T.bg,
+                borderWidth:1,
+                borderColor:T.line,
+                borderRadius:14,
+                paddingHorizontal:14,
+              }}>
                 <TextInput
                   value={kgText}
                   onChangeText={handleKgChange}
                   keyboardType="decimal-pad"
-                  placeholder="Weight (kg)"
+                  placeholder="Enter batch weight"
                   placeholderTextColor={T.mute}
                   style={{
-                    backgroundColor:dark?'#0f1913':T.bg,
+                    flex:1,
                     color:T.ink,
-                    borderWidth:1,
-                    borderColor:T.line,
-                    borderRadius:14,
-                    paddingHorizontal:14,
-                    paddingVertical:11,
+                    paddingVertical:12,
                     fontSize:16,
                     fontWeight:'700',
                   }}
                 />
+                <Txt s={14} w="700" c={T.mute}>kg</Txt>
               </View>
-              <View style={{flex:1,alignItems:'flex-end'}}>
-                <Txt s={11.5} c={T.mute}>Est. reference</Txt>
-                <Txt s={25} w="800" c={validKg>0?T.g2:T.mute}>
+
+              <View style={{
+                flexDirection:'row',
+                alignItems:'center',
+                justifyContent:'space-between',
+                gap:12,
+                backgroundColor:dark?'#102118':T.g2+'14',
+                borderRadius:14,
+                paddingHorizontal:14,
+                paddingVertical:12,
+              }}>
+                <Txt s={12.5} w="600" c={T.mute}>Est. reference</Txt>
+                <Text
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.65}
+                  style={{
+                    flex:1,
+                    textAlign:'right',
+                    fontSize:22,
+                    fontWeight:'800',
+                    color:validKg>0?T.g2:T.mute,
+                  }}
+                >
                   {validKg>0?`₱${estTotal.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`:'—'}
-                </Txt>
+                </Text>
               </View>
             </View>
 
