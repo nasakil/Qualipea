@@ -2,14 +2,15 @@ import React,{useState} from 'react';
 import {View,Text,Pressable,ScrollView} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {GR,GC,normGrade} from '../theme';
-import {DEFECT_CATALOG,GN} from '../data';
+import {DEFECT_CATALOG,GN,suggestDefects} from '../data';
 import {Txt,Btn,Kernel} from '../components';
 import {useApp} from '../AppContext';
 import {sfx} from '../sound';
 
 export default function DefectSelection(){
   const {T,dark,recScan,saveScanDefects,setScr,setSheet,close,anim}=useApp();
-  const initial=recScan?.defects||[];
+  const autoDetected=suggestDefects(recScan);
+  const initial=Array.isArray(recScan?.defects)?recScan.defects:autoDetected;
   const [selected,setSelected]=useState(initial);
 
   const toggle=(id)=>{
@@ -109,15 +110,16 @@ export default function DefectSelection(){
         </View>
 
         <Txt s={28} w="800" style={{marginTop:8,letterSpacing:-0.5}}>
-          Check defects seen on tray
+          Verify detected defects
         </Txt>
         <Txt s={14.5} c={T.mute} style={{marginTop:6,marginBottom:16,lineHeight:21}}>
-          Tick any visual defects you spot so QualiPea can explain the grade and give step-by-step handling advice. Tap the info icon for examples.
+          QualiPea pre-checked likely defects from your scan. Tap any item to recheck or adjust before viewing recommendations.
         </Txt>
 
         <View style={{gap:11}}>
           {DEFECT_CATALOG.map(d=>{
             const checked=selected.includes(d.id);
+            const isAuto=autoDetected.includes(d.id);
             return (
               <Pressable
                 key={d.id}
@@ -159,7 +161,14 @@ export default function DefectSelection(){
                 </View>
 
                 <View style={{flex:1}}>
-                  <Txt s={15.5} w="700">{d.name}</Txt>
+                  <View style={{flexDirection:'row',alignItems:'center',gap:7,flexWrap:'wrap'}}>
+                    <Txt s={15.5} w="700">{d.name}</Txt>
+                    {isAuto&&(
+                      <View style={{paddingHorizontal:7,paddingVertical:2,borderRadius:99,backgroundColor:T.g2+'22'}}>
+                        <Text style={{color:T.g2,fontFamily:'OpenRunde-Bold',fontSize:10.5}}>Auto</Text>
+                      </View>
+                    )}
+                  </View>
                   <Txt s={13} c={T.mute} style={{marginTop:2}}>{d.summary}</Txt>
                 </View>
 

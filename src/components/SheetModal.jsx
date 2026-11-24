@@ -44,8 +44,6 @@ function SpinRing({color,track,anim}){
           fill="none"
           strokeDasharray={`${c*0.28} ${c}`}
           strokeLinecap="round"
-          rotation={120}
-          origin={`${size/2},${size/2}`}
         />
       </Svg>
     </Animated.View>
