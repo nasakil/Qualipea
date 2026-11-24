@@ -3,7 +3,7 @@ import {View,Text,Pressable,ScrollView} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {GR,GC,normGrade} from '../theme';
 import {DEFECT_CATALOG,GN,suggestDefects} from '../data';
-import {Txt,Btn,Kernel} from '../components';
+import {Txt,Btn,DefectKernel} from '../components';
 import {useApp} from '../AppContext';
 import {sfx} from '../sound';
 
@@ -24,16 +24,16 @@ export default function DefectSelection(){
       node:(
         <View style={{width:'100%',alignItems:'center'}}>
           <View style={{
-            width:96,
-            height:96,
-            borderRadius:26,
-            backgroundColor:defect.color+'22',
+            width:104,
+            height:104,
+            borderRadius:28,
+            backgroundColor:dark?'#24241e':'#f3efe6',
             borderWidth:1,
             borderColor:defect.color+'55',
             alignItems:'center',
             justifyContent:'center',
           }}>
-            <Kernel g={defect.gradeHint} size={68} rot={-18}/>
+            <DefectKernel id={defect.id} size={82}/>
           </View>
           <Txt s={22} w="800" style={{marginTop:14,textAlign:'center'}}>{defect.name}</Txt>
           <Txt s={13.5} c={defect.color} w="700" style={{marginTop:4,textAlign:'center'}}>{defect.summary}</Txt>
@@ -150,14 +150,16 @@ export default function DefectSelection(){
                 </View>
 
                 <View style={{
-                  width:46,
-                  height:46,
-                  borderRadius:15,
-                  backgroundColor:d.color+'20',
+                  width:50,
+                  height:50,
+                  borderRadius:16,
+                  backgroundColor:dark?'#23241f':'#f3efe6',
+                  borderWidth:1,
+                  borderColor:T.line,
                   alignItems:'center',
                   justifyContent:'center',
                 }}>
-                  <Ionicons name={d.icon} size={22} color={d.color}/>
+                  <DefectKernel id={d.id} size={42}/>
                 </View>
 
                 <View style={{flex:1}}>
