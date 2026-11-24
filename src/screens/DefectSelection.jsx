@@ -104,7 +104,7 @@ export default function DefectSelection(){
 
         <View style={{flexDirection:'row',alignItems:'center',gap:8,marginTop:18}}>
           <View style={{paddingHorizontal:10,paddingVertical:4,borderRadius:99,backgroundColor:GC[g]+'24'}}>
-            <Text style={{color:GC[g],fontWeight:'800',fontSize:12}}>{GN[g][0]}</Text>
+            <Text style={{color:GC[g],fontFamily:'OpenRunde-Bold',fontSize:12}}>{GN[g][0]}</Text>
           </View>
           <Txt s={13} c={T.mute}>{selected.length} selected</Txt>
         </View>

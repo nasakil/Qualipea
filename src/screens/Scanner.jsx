@@ -75,7 +75,7 @@ export default function Scanner(){
           <Ionicons name="chevron-back" size={24} color="#fff"/>
         </Pressable>
 
-        <Text style={{color:'#fff',fontWeight:'800',fontSize:18}}>
+        <Text style={{color:'#fff',fontFamily:'OpenRunde-Bold',fontSize:18}}>
           {demo?'Scanner (Demo)':'Scanner'}
         </Text>
 
@@ -120,7 +120,7 @@ export default function Scanner(){
             }}>
               <Ionicons name="camera-outline" size={32} color={GOLD}/>
             </View>
-            <Text style={{color:'#fff',fontSize:19,fontWeight:'800',textAlign:'center'}}>
+            <Text style={{color:'#fff',fontSize:19,fontFamily:'OpenRunde-Bold',textAlign:'center'}}>
               Camera access needed
             </Text>
             <Text style={{color:'#a9beb2',fontSize:14,textAlign:'center',lineHeight:20}}>
@@ -136,7 +136,7 @@ export default function Scanner(){
                 borderRadius:16,
               }}
             >
-              <Text style={{color:'#241803',fontWeight:'800',fontSize:15}}>Allow camera</Text>
+              <Text style={{color:'#241803',fontFamily:'OpenRunde-Bold',fontSize:15}}>Allow camera</Text>
             </Pressable>
           </View>
         ):(

@@ -84,7 +84,7 @@ export default function History(){
           </View>
           <View style={{flexDirection:'row',flexWrap:'wrap',gap:12}}>
             {GRADES.map(x=>(
-              <Text key={x} style={{color:GC[x],fontWeight:'700',fontSize:12.5}}>● {n[x]}</Text>
+              <Text key={x} style={{color:GC[x],fontFamily:'OpenRunde-Bold',fontSize:12.5}}>● {n[x]}</Text>
             ))}
           </View>
         </View>
@@ -112,8 +112,8 @@ export default function History(){
                 transform:[{scale:pressed&&anim?0.96:1}],
               })}
             >
-              <Text style={{fontWeight:'700',fontSize:13.5,color:active?'#fff':T.mute}}>{label}</Text>
-              <Text style={{fontWeight:'700',fontSize:12,color:active?'rgba(255,255,255,0.75)':T.mute}}>
+              <Text style={{fontFamily:'OpenRunde-Bold',fontSize:13.5,color:active?'#fff':T.mute}}>{label}</Text>
+              <Text style={{fontFamily:'OpenRunde-Bold',fontSize:12,color:active?'rgba(255,255,255,0.75)':T.mute}}>
                 {counts[f]}
               </Text>
             </Pressable>

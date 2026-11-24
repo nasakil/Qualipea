@@ -515,7 +515,7 @@ export function AppProvider({ children }) {
                       transform: [{ scale: pressed && anim ? .96 : 1 }],
                     })}
                   >
-                    <Text style={{ fontWeight: '700', fontSize: 13, color: active ? '#fff' : T.mute }}>{x}</Text>
+                    <Text style={{ fontFamily:'OpenRunde-Bold', fontSize: 13, color: active ? '#fff' : T.mute }}>{x}</Text>
                   </Pressable>
                 );
               })}

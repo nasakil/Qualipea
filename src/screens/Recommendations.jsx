@@ -103,7 +103,7 @@ function ClassIllustration({grade}){
         borderWidth:2,
         borderColor:'#0f3423',
       }}>
-        <Text style={{color:'#fff',fontSize:11,fontWeight:'900'}}>{GS[grade]}</Text>
+        <Text style={{color:'#fff',fontSize:11,fontFamily:'OpenRunde-Bold'}}>{GS[grade]}</Text>
       </View>
     </View>
   );
@@ -164,7 +164,7 @@ export default function Recommendations(){
             >
               <Ionicons name="chevron-back" size={24} color="#fff"/>
             </Pressable>
-            <Text style={{color:'#fff',fontWeight:'800',fontSize:17}}>Guide &amp; Value</Text>
+            <Text style={{color:'#fff',fontFamily:'OpenRunde-Bold',fontSize:17}}>Guide &amp; Value</Text>
             <Pressable
               onPress={()=>{sfx('tap');setScr('defects',-1)}}
               style={({pressed})=>({
@@ -175,22 +175,22 @@ export default function Recommendations(){
                 opacity:pressed?0.75:1,
               })}
             >
-              <Text style={{color:'#fff',fontWeight:'700',fontSize:12.5}}>Edit defects</Text>
+              <Text style={{color:'#fff',fontFamily:'OpenRunde-Bold',fontSize:12.5}}>Edit defects</Text>
             </Pressable>
           </View>
 
           <View style={{flexDirection:'row',alignItems:'center',gap:16,marginTop:20}}>
             <ClassIllustration grade={g}/>
             <View style={{flex:1}}>
-              <Text style={{color:'#fff',fontSize:24,fontWeight:'800'}}>{GN[g][0]}</Text>
+              <Text style={{color:'#fff',fontSize:24,fontFamily:'OpenRunde-Bold'}}>{GN[g][0]}</Text>
               <Text style={{color:'#ffffffc4',fontSize:13.5,marginTop:3}}>{why.headline}</Text>
               <View style={{flexDirection:'row',gap:8,marginTop:8}}>
                 <View style={{paddingHorizontal:10,paddingVertical:4,borderRadius:99,backgroundColor:'rgba(255,255,255,0.14)'}}>
-                  <Text style={{color:'#fff',fontSize:11.5,fontWeight:'700'}}>{pc(recScan.c)}% match</Text>
+                  <Text style={{color:'#fff',fontSize:11.5,fontFamily:'OpenRunde-Bold'}}>{pc(recScan.c)}% match</Text>
                 </View>
                 {selectedDefects.length>0&&(
                   <View style={{paddingHorizontal:10,paddingVertical:4,borderRadius:99,backgroundColor:GOLD+'33'}}>
-                    <Text style={{color:'#f7d688',fontSize:11.5,fontWeight:'700'}}>
+                    <Text style={{color:'#f7d688',fontSize:11.5,fontFamily:'OpenRunde-Bold'}}>
                       {selectedDefects.length} defect{selectedDefects.length>1?'s':''}
                     </Text>
                   </View>
@@ -232,7 +232,7 @@ export default function Recommendations(){
             <View style={{gap:7}}>
               {why.factors.slice(0,3).map((f,idx)=>(
                 <View key={idx} style={{flexDirection:'row',gap:8}}>
-                  <Text style={{color:c,fontWeight:'900'}}>•</Text>
+                  <Text style={{color:c,fontFamily:'OpenRunde-Bold'}}>•</Text>
                   <Txt s={13.5} c={idx===0?T.ink:T.mute} style={{flex:1,lineHeight:19}}>{f}</Txt>
                 </View>
               ))}
@@ -290,7 +290,7 @@ export default function Recommendations(){
                                 alignItems:'center',
                                 justifyContent:'center',
                               }}>
-                                <Text style={{color:d.color,fontWeight:'800',fontSize:11.5}}>{i+1}</Text>
+                                <Text style={{color:d.color,fontFamily:'OpenRunde-Bold',fontSize:11.5}}>{i+1}</Text>
                               </View>
                               <Txt s={13.5} w="500" style={{flex:1}}>{step}</Txt>
                             </View>
@@ -329,7 +329,7 @@ export default function Recommendations(){
                 <Txt s={16} w="800">Batch value</Txt>
               </View>
               <View style={{paddingHorizontal:10,paddingVertical:4,borderRadius:99,backgroundColor:T.g2+'22'}}>
-                <Text style={{color:T.g2,fontWeight:'800',fontSize:11.5}}>₱{basePrice.toFixed(0)}/kg · PSA</Text>
+                <Text style={{color:T.g2,fontFamily:'OpenRunde-Bold',fontSize:11.5}}>₱{basePrice.toFixed(0)}/kg · PSA</Text>
               </View>
             </View>
 
@@ -354,7 +354,7 @@ export default function Recommendations(){
                     color:T.ink,
                     paddingVertical:12,
                     fontSize:16,
-                    fontWeight:'700',
+                    fontFamily:'OpenRunde-Bold',
                   }}
                 />
                 <Txt s={14} w="700" c={T.mute}>kg</Txt>
@@ -379,7 +379,7 @@ export default function Recommendations(){
                     flex:1,
                     textAlign:'right',
                     fontSize:22,
-                    fontWeight:'800',
+                    fontFamily:'OpenRunde-Bold',
                     color:validKg>0?T.g2:T.mute,
                   }}
                 >

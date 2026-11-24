@@ -56,7 +56,7 @@ export default function Result(){
             >
               <Ionicons name="chevron-back" size={24} color="#fff"/>
             </Pressable>
-            <Text style={{color:'#fff',fontWeight:'800',fontSize:17}}>Classification result</Text>
+            <Text style={{color:'#fff',fontFamily:'OpenRunde-Bold',fontSize:17}}>Classification result</Text>
             <View style={{width:40}}/>
           </View>
 
@@ -70,10 +70,10 @@ export default function Result(){
               justifyContent:'center',
               transform:[{scale:badgeScale}],
             }}>
-              <Text style={{color:'#fff',fontSize:38,fontWeight:'900'}}>{GS[g]}</Text>
+              <Text style={{color:'#fff',fontSize:38,fontFamily:'OpenRunde-Bold'}}>{GS[g]}</Text>
             </Animated.View>
             <View style={{flex:1}}>
-              <Text style={{color:'#fff',fontSize:25,fontWeight:'800'}}>{GN[g][0]}</Text>
+              <Text style={{color:'#fff',fontSize:25,fontFamily:'OpenRunde-Bold'}}>{GN[g][0]}</Text>
               <Text style={{color:'#ffffffbb',marginTop:2}}>{GN[g][1]}</Text>
             </View>
             <View style={{width:72,height:72,alignItems:'center',justifyContent:'center'}}>
@@ -91,7 +91,7 @@ export default function Result(){
                   strokeDashoffset={circ*(1-cur.c)}
                 />
               </Svg>
-              <Text style={{color:'#fff',fontWeight:'800',fontSize:15}}>{pc(cur.c)}%</Text>
+              <Text style={{color:'#fff',fontFamily:'OpenRunde-Bold',fontSize:15}}>{pc(cur.c)}%</Text>
             </View>
           </View>
         </LinearGradient>
@@ -101,7 +101,7 @@ export default function Result(){
             <View style={{flexDirection:'row',gap:12,backgroundColor:GC.B+'2a',borderRadius:18,padding:14}}>
               <Ionicons name="flag" size={20} color={GC.B}/>
               <Txt style={{flex:1}} s={14}>
-                <Text style={{fontWeight:'700'}}>Flagged for expert review. </Text>
+                <Text style={{fontFamily:'OpenRunde-Bold'}}>Flagged for expert review. </Text>
                 Confidence is low, so this isn’t a verified grade.
               </Txt>
             </View>
@@ -127,7 +127,7 @@ export default function Result(){
                   gap:5,
                 }}>
                   <Ionicons name="expand-outline" size={13} color="#fff"/>
-                  <Text style={{color:'#fff',fontSize:11.5,fontWeight:'700'}}>Tap to zoom</Text>
+                  <Text style={{color:'#fff',fontSize:11.5,fontFamily:'OpenRunde-Bold'}}>Tap to zoom</Text>
                 </View>
               </Pressable>
             </Card>
@@ -142,7 +142,7 @@ export default function Result(){
             <Txt s={14.5} w="700" style={{marginBottom:6}}>{why.headline}</Txt>
             {why.factors.map((f,idx)=>(
               <View key={idx} style={{flexDirection:'row',gap:8,marginTop:5}}>
-                <Text style={{color:c,fontWeight:'800'}}>•</Text>
+                <Text style={{color:c,fontFamily:'OpenRunde-Bold'}}>•</Text>
                 <Txt s={13.5} c={T.mute} style={{flex:1,lineHeight:19}}>{f}</Txt>
               </View>
             ))}

@@ -63,7 +63,7 @@ export default function Row({h,i}){
           borderWidth:2,
           borderColor:T.card,
         }}>
-          <Text style={{color:'#fff',fontWeight:'800',fontSize:10.5}}>{GS[badgeKey]}</Text>
+          <Text style={{color:'#fff',fontFamily:'OpenRunde-Bold',fontSize:10.5}}>{GS[badgeKey]}</Text>
         </View>
       </View>
       <View style={{flex:1}}>

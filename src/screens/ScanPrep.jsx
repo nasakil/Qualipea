@@ -94,7 +94,7 @@ export default function ScanPrep() {
             </View>
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-                <Text style={{ color: T.g2, fontWeight: '800', fontSize: 12 }}>0{idx + 1}</Text>
+                <Text style={{ color: T.g2, fontFamily:'OpenRunde-Bold', fontSize: 12 }}>0{idx + 1}</Text>
                 <Txt s={16} w="700">{a}</Txt>
               </View>
               <Txt s={13.5} c={T.mute} style={{ marginTop: 3, lineHeight: 19 }}>{b}</Txt>
