@@ -18,7 +18,7 @@ function getGreeting(){
 }
 
 export default function Home(){
-  const {T,dark,demo,dev,piUrl,hist,connect,startScan,askExit,anim}=useApp();
+  const {T,dark,demo,dev,hist,connect,startScan,anim}=useApp();
   const [openRef,setOpenRef]=useState(null);
   const pulse=useRef(new Animated.Value(1)).current;
   const floatY=useRef(new Animated.Value(0)).current;
@@ -49,8 +49,7 @@ export default function Home(){
   },[anim,pulse,floatY]);
 
   const dotColor=dev===1?GC.A:dev===2?GOLD:T.mute;
-  const host=piUrl.replace(/^https?:\/\//,'');
-  const statusText=[`Tap to connect · ${host}`,demo?'Connected · camera ready':`Connected · ${host}`,'Connecting…'][dev];
+  const pillLabel=dev===1?(demo?'Pi 5 · Demo':'Pi 5'):dev===2?'Connecting…':'Connect Pi 5';
 
   return (
     <View style={{flex:1}}>
@@ -69,27 +68,45 @@ export default function Home(){
           title="Ready to grade?"
           right={
             <Pressable
-              onPress={()=>{sfx('tap');askExit()}}
+              onPress={()=>{sfx('tap');connect()}}
               style={({pressed})=>({
-                width:44,
-                height:44,
-                borderRadius:15,
+                flexDirection:'row',
+                alignItems:'center',
+                gap:7,
+                paddingHorizontal:12,
+                paddingVertical:9,
+                borderRadius:99,
                 backgroundColor:T.card,
                 borderWidth:1,
-                borderColor:T.line,
-                alignItems:'center',
-                justifyContent:'center',
-                transform:[{scale:pressed&&anim?.94:1}],
+                borderColor:dev===1?GC.A+'55':T.line,
+                transform:[{scale:pressed&&anim?.95:1}],
               })}
             >
-              <Ionicons name="exit-outline" size={22} color={T.ink}/>
+              <View style={{
+                width:12,
+                height:12,
+                borderRadius:6,
+                backgroundColor:dotColor+'2e',
+                alignItems:'center',
+                justifyContent:'center',
+              }}>
+                <Animated.View style={{
+                  width:7,
+                  height:7,
+                  borderRadius:4,
+                  backgroundColor:dotColor,
+                  opacity:dev===0?0.75:pulse,
+                }}/>
+              </View>
+              <Ionicons name="hardware-chip-outline" size={16} color={dev===1?T.g2:T.ink}/>
+              <Text style={{color:T.ink,fontFamily:'OpenRunde-Bold',fontSize:12.5}}>{pillLabel}</Text>
             </Pressable>
           }
         />
 
         <Pressable
           onPress={()=>{sfx('tap');startScan()}}
-          style={({pressed})=>({marginBottom:12,transform:[{scale:pressed&&anim?.985:1}]})}
+          style={({pressed})=>({marginBottom:14,transform:[{scale:pressed&&anim?.985:1}]})}
         >
           <LinearGradient
             colors={['#1b6242','#0b2b1e']}
@@ -97,8 +114,8 @@ export default function Home(){
             end={{x:1,y:1}}
             style={{borderRadius:30,padding:22,minHeight:184,overflow:'hidden'}}
           >
-            <Text style={{color:'#fff',fontSize:26,fontWeight:'800',maxWidth:175}}>Start a new scan</Text>
-            <Text style={{color:'#ffffffb8',marginVertical:9,maxWidth:195,lineHeight:20}}>
+            <Text style={{color:'#fff',fontSize:26,fontFamily:'OpenRunde-Bold',maxWidth:175}}>Start a new scan</Text>
+            <Text style={{color:'#ffffffb8',fontFamily:'OpenRunde-Regular',marginVertical:9,maxWidth:195,lineHeight:20}}>
               One kernel per scan, lid closed, LED on.
             </Text>
             <View style={{
@@ -112,78 +129,13 @@ export default function Home(){
               gap:8,
               marginTop:4,
             }}>
-              <Text style={{fontWeight:'700',color:'#2a1d04'}}>Scan kernel</Text>
+              <Text style={{fontFamily:'OpenRunde-Bold',color:'#2a1d04'}}>Scan kernel</Text>
               <Ionicons name="arrow-forward" size={18} color="#2a1d04"/>
             </View>
             <Animated.View style={{position:'absolute',right:-18,bottom:-12,transform:[{translateY:floatY}]}}>
               <Kernel size={170}/>
             </Animated.View>
           </LinearGradient>
-        </Pressable>
-
-        <Pressable
-          onPress={()=>{sfx('tap');connect()}}
-          style={({pressed})=>({marginBottom:14,transform:[{scale:pressed&&anim?.985:1}]})}
-        >
-          <View style={{
-            flexDirection:'row',
-            alignItems:'center',
-            gap:11,
-            backgroundColor:T.card,
-            borderWidth:1,
-            borderColor:T.line,
-            borderRadius:20,
-            paddingVertical:11,
-            paddingHorizontal:13,
-          }}>
-            <View style={{
-              width:34,
-              height:34,
-              borderRadius:11,
-              backgroundColor:T.g2+'20',
-              alignItems:'center',
-              justifyContent:'center',
-            }}>
-              <Ionicons name="hardware-chip-outline" size={18} color={T.g2}/>
-            </View>
-
-            <View style={{flex:1,gap:2}}>
-              <Txt s={14} w="700">Raspberry Pi 5 chamber</Txt>
-              <View style={{flexDirection:'row',alignItems:'center',gap:6}}>
-                <View style={{
-                  width:13,
-                  height:13,
-                  borderRadius:7,
-                  backgroundColor:dotColor+'2e',
-                  alignItems:'center',
-                  justifyContent:'center',
-                }}>
-                  <Animated.View style={{
-                    width:7,
-                    height:7,
-                    borderRadius:4,
-                    backgroundColor:dotColor,
-                    opacity:dev===0?0.7:pulse,
-                  }}/>
-                </View>
-                <Txt s={12.5} c={T.mute}>{statusText}</Txt>
-              </View>
-            </View>
-
-            {demo?(
-              <View style={{
-                backgroundColor:dark?'#223228':T.line,
-                paddingHorizontal:10,
-                paddingVertical:4,
-                borderRadius:99,
-              }}>
-                <Text style={{color:dark?'#b8cabf':T.mute,fontWeight:'700',fontSize:11.5}}>Demo</Text>
-              </View>
-            ):dev===1?(
-              <Chip t="LED on" c={GC.A}/>
-            ):null}
-            <Ionicons name="chevron-forward" size={15} color={T.mute}/>
-          </View>
         </Pressable>
 
         <View style={{flexDirection:'row',gap:12}}>
