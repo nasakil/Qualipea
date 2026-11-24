@@ -1,7 +1,7 @@
 import React,{createContext,useContext,useState,useEffect,useRef} from 'react';
 import {View,Text,Pressable,Animated,Image,useColorScheme} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {GR,GC,pc,LT,DK,Th,AnimCtx} from './theme';
+import {GR,GC,GRADES,normGrade,pc,LT,DK,Th,AnimCtx} from './theme';
 import {GN,SEED,buildWhySummary} from './data';
 import {Kernel,Card,Txt} from './components';
 import {sfx,setSfx,initAudio} from './sound';
@@ -66,7 +66,13 @@ export function AppProvider({children}){
           if(typeof saved.snd==='boolean'){setSnd(saved.snd);setSfx(saved.snd)}
           if(typeof saved.demo==='boolean')setDemo(saved.demo);
           if(typeof saved.piUrl==='string'&&saved.piUrl.trim())setPiUrl(saved.piUrl);
-          if(Array.isArray(saved.hr))setHr(saved.hr);
+          if(Array.isArray(saved.hr)){
+            setHr(saved.hr.map(item=>({
+              ...item,
+              g:normGrade(item.g),
+              x:item.x?normGrade(item.x):undefined,
+            })));
+          }
         }
       }catch(_){}
       finally{
@@ -204,11 +210,20 @@ export function AppProvider({children}){
 
   const makeFallbackResult=(img)=>{
     const r=Math.random();
-    const g=r<.45?'A':r<.8?'B':'C';
-    const c=.6+Math.random()*.38;
-    const o=['A','B','C'].filter(x=>x!==g);
-    const sp=Math.random()*.6+.2;
-    return {g,c,rv:c<.75,img:img||null,p:{[g]:c,[o[0]]:(1-c)*sp,[o[1]]:(1-c)*(1-sp)}};
+    const g=r<.32?'Extra Class':r<.62?'Class I':r<.85?'Class II':'Defect';
+    const c=.62+Math.random()*.35;
+    const o=GRADES.filter(x=>x!==g);
+    const rem=Math.max(0,1-c);
+    const w1=0.5+Math.random()*0.2;
+    const w2=(1-w1)*0.65;
+    const w3=1-w1-w2;
+    return {
+      g,
+      c,
+      rv:c<.75,
+      img:img||null,
+      p:{[g]:c,[o[0]]:rem*w1,[o[1]]:rem*w2,[o[2]]:rem*w3},
+    };
   };
 
   const analyze=async()=>{
@@ -287,7 +302,7 @@ export function AppProvider({children}){
       setSheet({
         ok:1,
         title:'Result saved',
-        body:`Grade ${cur.g} was added to your history${cur.rv?', flagged for expert review':''}.`,
+        body:`${cur.g} was added to your history${cur.rv?', flagged for expert review':''}.`,
         btns:[
           ['Scan another','sec',()=>{close();startScan()}],
           ['View history','',()=>{close();goTab('hist')}],
@@ -326,11 +341,11 @@ export function AppProvider({children}){
 
   const openRecommendations=(scanObj,histIdx=null,fromHistory=false)=>{
     if(!scanObj)return;
-    const payload={...scanObj,histIdx,fromHistory};
+    const payload={...scanObj,g:normGrade(scanObj.g),histIdx,fromHistory};
     setRecScan(payload);
     close();
-    const g=scanObj.x||scanObj.g;
-    if(g==='A'||(Array.isArray(scanObj.defects)&&scanObj.defects.length>0)){
+    const g=normGrade(scanObj.x||scanObj.g);
+    if(g==='Extra Class'||(Array.isArray(scanObj.defects)&&scanObj.defects.length>0)){
       setScr('recs',1);
     }else{
       setScr('defects',1);
@@ -395,7 +410,7 @@ export function AppProvider({children}){
       ['Scanned',scannedLabel],
       ['Model',h.model||'yolo11n-cls 1.0.0'],
       ['Status',h.r?'Flagged for review':'Confident'],
-      ...(h.x?[['Expert grade','Grade '+h.x]]:[]),
+      ...(h.x?[['Expert class',h.x]]:[]),
       ...(h.kg?[['Batch weight',`${h.kg} kg`]]:[]),
     ];
     setSheet({
@@ -463,16 +478,16 @@ export function AppProvider({children}){
 
           <View style={{width:'100%',marginTop:14}}>
             <Txt s={15} w="700">Expert correction</Txt>
-            <View style={{flexDirection:'row',gap:10,marginTop:10,marginBottom:8}}>
-              {['A','B','C'].map(x=>{
+            <View style={{flexDirection:'row',flexWrap:'wrap',gap:8,marginTop:10,marginBottom:8}}>
+              {GRADES.map(x=>{
                 const active=h.x===x;
                 return (
                   <Pressable
                     key={x}
                     onPress={()=>{sfx('tap');fix(i,x)}}
                     style={({pressed})=>({
-                      paddingHorizontal:18,
-                      paddingVertical:9,
+                      paddingHorizontal:14,
+                      paddingVertical:8,
                       borderRadius:99,
                       backgroundColor:active?GR:(dark?'#142119':T.bg),
                       borderWidth:1,
@@ -480,7 +495,7 @@ export function AppProvider({children}){
                       transform:[{scale:pressed&&anim?.96:1}],
                     })}
                   >
-                    <Text style={{fontWeight:'700',fontSize:13.5,color:active?'#fff':T.mute}}>Grade {x}</Text>
+                    <Text style={{fontWeight:'700',fontSize:13,color:active?'#fff':T.mute}}>{x}</Text>
                   </Pressable>
                 );
               })}

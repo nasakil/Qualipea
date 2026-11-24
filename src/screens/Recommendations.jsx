@@ -2,7 +2,7 @@ import React,{useState} from 'react';
 import {View,Text,Pressable,ScrollView,TextInput,KeyboardAvoidingView,Platform} from 'react-native';
 import {LinearGradient} from 'expo-linear-gradient';
 import {Ionicons} from '@expo/vector-icons';
-import {GC,GOLD,pc} from '../theme';
+import {GC,GS,GOLD,normGrade,pc} from '../theme';
 import {GN,ADV,PRICE_CONFIG,defectById,buildWhySummary} from '../data';
 import {Card,Txt,Btn} from '../components';
 import {useApp} from '../AppContext';
@@ -15,7 +15,7 @@ export default function Recommendations(){
 
   if(!recScan)return null;
 
-  const g=recScan.x||recScan.g||'B';
+  const g=normGrade(recScan.x||recScan.g);
   const c=GC[g];
   const why=buildWhySummary(recScan);
   const selectedDefects=(recScan.defects||[]).map(defectById).filter(Boolean);
@@ -85,7 +85,7 @@ export default function Recommendations(){
               alignItems:'center',
               justifyContent:'center',
             }}>
-              <Text style={{color:'#fff',fontSize:38,fontWeight:'900'}}>{g}</Text>
+              <Text style={{color:'#fff',fontSize:28,fontWeight:'900'}}>{GS[g]}</Text>
             </View>
             <View style={{flex:1}}>
               <Text style={{color:'#fff',fontSize:23,fontWeight:'800'}}>{GN[g][0]}</Text>

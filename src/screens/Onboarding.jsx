@@ -2,7 +2,7 @@ import React,{useEffect,useRef} from 'react';
 import {View,Text,Pressable,FlatList,Animated,Easing} from 'react-native';
 import {LinearGradient} from 'expo-linear-gradient';
 import Svg,{Path} from 'react-native-svg';
-import {W,GC,GOLD} from '../theme';
+import {W,GC,GS,GRADES,GOLD} from '../theme';
 import {Kernel,Card,Txt,Chip,Brk} from '../components';
 import {useApp} from '../AppContext';
 import {sfx} from '../sound';
@@ -10,8 +10,8 @@ import {sfx} from '../sound';
 const OB=[
   ['Drop in one kernel.','Place a single peanut kernel on the pad and close the chamber lid.'],
   ['Tap to scan.','The camera captures the kernel and checks lighting in seconds.'],
-  ['Get a clear grade.','Grade A, B or C with confidence scores and expert review flags.'],
-  ['Price & next steps.','See reference pricing and handling advice, then save to history.'],
+  ['Get a clear class.','Extra Class, Class I, Class II, or Defect with confidence scores and explanations.'],
+  ['Price & next steps.','See PSA reference pricing, defect advice, and save every scan to history.'],
 ];
 
 function Sparkle({size=28,color='#ffffff'}){
@@ -88,25 +88,25 @@ export default function Onboarding(){
         }}>
           <View style={{width:118,height:118,alignItems:'center',justifyContent:'center'}}>
             <Brk s={28} c={T.g2}/>
-            <Kernel g="B" size={82} rot={-18}/>
+            <Kernel g="Class II" size={82} rot={-18}/>
           </View>
         </View>
       );
     }
     if(i===2){
       return (
-        <View style={{flexDirection:'row',gap:12,alignItems:'center'}}>
-          {['A','B','C'].map((x,j)=>(
+        <View style={{flexDirection:'row',gap:9,alignItems:'center'}}>
+          {GRADES.map((x,j)=>(
             <View
               key={x}
               style={{
-                width:64,
-                height:78,
-                borderRadius:22,
+                width:58,
+                height:72,
+                borderRadius:20,
                 backgroundColor:GC[x],
                 alignItems:'center',
                 justifyContent:'center',
-                marginTop:j===1?-20:0,
+                marginTop:j%2===1?-16:0,
                 shadowColor:'#0a2c1a',
                 shadowOpacity:0.2,
                 shadowRadius:14,
@@ -114,7 +114,7 @@ export default function Onboarding(){
                 elevation:8,
               }}
             >
-              <Text style={{color:'#fff',fontWeight:'800',fontSize:32}}>{x}</Text>
+              <Text style={{color:'#fff',fontWeight:'900',fontSize:22}}>{GS[x]}</Text>
             </View>
           ))}
         </View>
@@ -131,9 +131,9 @@ export default function Onboarding(){
         shadowRadius:20,
         elevation:10,
       }}>
-        <Chip t="Grade A" c={GC.A}/>
-        <Txt s={38} w="800">₱92.00</Txt>
-        <Txt s={13} c={T.mute}>per kg, reference price</Txt>
+        <Chip t="Extra Class" c={GC['Extra Class']}/>
+        <Txt s={38} w="800">₱100.00</Txt>
+        <Txt s={13} c={T.mute}>per kg · PSA Region XI reference</Txt>
       </Card>
     );
   };

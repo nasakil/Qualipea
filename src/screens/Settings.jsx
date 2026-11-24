@@ -17,7 +17,7 @@ export default function Settings(){
     ['hardware-chip-outline','Raspberry Pi 5',on,on?`Connected (${piUrl.replace(/^https?:\/\//,'')})`:dev===2?'Connecting…':`Offline · ${piUrl.replace(/^https?:\/\//,'')}`],
     ['camera-outline','Camera Module 3',on,on?'Ready, 12 MP':'Unavailable until the Pi connects'],
     ['sunny-outline','LED ring',on,on?'On, lighting is even':'Off'],
-    ['cube-outline','Grading model',on,on?'yolo11n-cls 1.0.0 loaded, 3 classes (demo value)':'Can’t check until the Pi connects'],
+    ['cube-outline','Grading model',on,on?'yolo11n-cls 1.0.0 loaded, 4 classes (Extra Class, Class I, Class II, Defect)':'Can’t check until the Pi connects'],
     ['pricetag-outline','Pricing API',demo,demo?'Demo provider, sample data':'Not configured'],
     ['cloud-done-outline','Cloud sync',demo,demo?'Synced just now':'Sign in to sync'],
   ];

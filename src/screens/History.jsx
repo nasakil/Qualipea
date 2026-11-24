@@ -1,7 +1,7 @@
 import React from 'react';
 import {View,Text,Pressable,ScrollView,Share} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
-import {GR,GC,pc} from '../theme';
+import {GR,GC,GRADES,normGrade,pc} from '../theme';
 import {Card,Txt,Btn} from '../components';
 import Row from '../components/Row';
 import Top from '../components/Top';
@@ -11,17 +11,18 @@ import {sfx} from '../sound';
 export default function History(){
   const {T,filt,setFilt,hist,startScan,toast,anim}=useApp();
   const baseFiltered=hist.filter(h=>{
+    const g=normGrade(h.g);
     if(filt==='All'||filt==='Oldest')return true;
     if(filt==='Today')return h.d===0;
     if(filt==='Flagged')return Boolean(h.r);
-    return h.g===filt;
+    return g===filt;
   });
   const l=filt==='Oldest'?[...baseFiltered].reverse():baseFiltered;
-  const n={A:0,B:0,C:0};
+  const n={'Extra Class':0,'Class I':0,'Class II':0,'Defect':0};
   let flagged=0,todayCount=0;
-  hist.forEach(h=>{n[h.g]++;if(h.r)flagged++;if(h.d===0)todayCount++});
+  hist.forEach(h=>{n[normGrade(h.g)]++;if(h.r)flagged++;if(h.d===0)todayCount++});
 
-  const counts={All:hist.length,Today:todayCount,Oldest:hist.length,A:n.A,B:n.B,C:n.C,Flagged:flagged};
+  const counts={All:hist.length,Today:todayCount,Oldest:hist.length,...n,Flagged:flagged};
 
   const exportSummary=async()=>{
     if(!hist.length){
@@ -33,11 +34,11 @@ export default function History(){
     const lines=[
       'QualiPea Batch Grading Report',
       `Total scans: ${hist.length}`,
-      `Grade A: ${n.A} | Grade B: ${n.B} | Grade C: ${n.C}`,
+      GRADES.map(k=>`${k}: ${n[k]}`).join(' | '),
       `Avg confidence: ${avgConf}% | Flagged for review: ${flagged}`,
       '',
       'Recent scans:',
-      ...hist.slice(0,25).map((h,i)=>`${i+1}. Grade ${h.x||h.g}${h.x?` (model: ${h.g})`:''} — ${pc(h.c)}%${h.r?' [Review]':''} (${h.tm})`),
+      ...hist.slice(0,25).map((h,i)=>`${i+1}. ${h.x||normGrade(h.g)}${h.x?` (model: ${normGrade(h.g)})`:''} — ${pc(h.c)}%${h.r?' [Review]':''} (${h.tm})`),
     ];
     try{
       await Share.share({message:lines.join('\n'),title:'QualiPea Batch Report'});
@@ -77,22 +78,22 @@ export default function History(){
         </View>
         <View style={{flex:1,gap:9}}>
           <View style={{flexDirection:'row',gap:4,height:12}}>
-            {['A','B','C'].map(x=>(
+            {GRADES.map(x=>(
               <View key={x} style={{flex:n[x]||.001,backgroundColor:GC[x],borderRadius:9}}/>
             ))}
           </View>
-          <View style={{flexDirection:'row',gap:16}}>
-            {['A','B','C'].map(x=>(
-              <Text key={x} style={{color:GC[x],fontWeight:'700',fontSize:13}}>● {n[x]}</Text>
+          <View style={{flexDirection:'row',flexWrap:'wrap',gap:12}}>
+            {GRADES.map(x=>(
+              <Text key={x} style={{color:GC[x],fontWeight:'700',fontSize:12.5}}>● {n[x]}</Text>
             ))}
           </View>
         </View>
       </Card>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginVertical:14}}>
-        {['All','Today','A','B','C','Flagged','Oldest'].map(f=>{
+        {['All','Today',...GRADES,'Flagged','Oldest'].map(f=>{
           const active=filt===f;
-          const label=f.length===1?'Grade '+f:(f==='Oldest'?'Oldest first':f);
+          const label=f==='Oldest'?'Oldest first':f;
           return (
             <Pressable
               key={f}
@@ -156,7 +157,7 @@ export default function History(){
             <Ionicons name={hist.length?'filter-outline':'camera-outline'} size={26} color={T.g2}/>
           </View>
           <Txt s={18} w="800" style={{textAlign:'center'}}>
-            {hist.length?`No ${filt==='Flagged'?'flagged':`Grade ${filt}`} scans`:'No scans saved yet'}
+            {hist.length?`No ${filt==='Flagged'?'flagged':filt} scans`:'No scans saved yet'}
           </Txt>
           <Txt s={14} c={T.mute} style={{textAlign:'center',maxWidth:250,lineHeight:20}}>
             {hist.length

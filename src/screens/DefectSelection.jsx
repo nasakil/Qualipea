@@ -1,7 +1,7 @@
 import React,{useState} from 'react';
 import {View,Text,Pressable,ScrollView} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
-import {GR,GOLD,GC} from '../theme';
+import {GR,GC,normGrade} from '../theme';
 import {DEFECT_CATALOG,GN} from '../data';
 import {Txt,Btn,Kernel} from '../components';
 import {useApp} from '../AppContext';
@@ -55,7 +55,7 @@ export default function DefectSelection(){
   };
 
   const handleConfirm=()=>{
-    if(!selected.length&&(recScan?.x||recScan?.g)!=='A'){
+    if(!selected.length&&normGrade(recScan?.x||recScan?.g)!=='Extra Class'){
       setSheet({
         ic:'alert-circle-outline',
         title:'Select a defect',
@@ -71,7 +71,7 @@ export default function DefectSelection(){
     setScr('recs',1);
   };
 
-  const g=recScan?.x||recScan?.g||'B';
+  const g=normGrade(recScan?.x||recScan?.g);
 
   return (
     <View style={{flex:1,backgroundColor:T.bg}}>

@@ -3,7 +3,7 @@ import {View,Text,Pressable,ScrollView,Animated,Image,ActivityIndicator} from 'r
 import {LinearGradient} from 'expo-linear-gradient';
 import Svg,{Circle} from 'react-native-svg';
 import {Ionicons} from '@expo/vector-icons';
-import {GOLD,GC,pc} from '../theme';
+import {GOLD,GC,GS,GRADES,normGrade,pc} from '../theme';
 import {GN,ADV,PRICE_CONFIG,buildWhySummary} from '../data';
 import {Card,Txt,Btn,Bar} from '../components';
 import {useApp} from '../AppContext';
@@ -29,7 +29,8 @@ export default function Result(){
   },[cur,anim,badgeScale]);
 
   if(!cur)return null;
-  const c=GC[cur.g];
+  const g=normGrade(cur.g);
+  const c=GC[g];
   const why=buildWhySummary(cur);
   const r=30,circ=2*Math.PI*r;
 
@@ -61,19 +62,19 @@ export default function Result(){
 
           <View style={{flexDirection:'row',alignItems:'center',gap:16,marginTop:22}}>
             <Animated.View style={{
-              width:94,
-              height:94,
-              borderRadius:28,
+              width:88,
+              height:88,
+              borderRadius:26,
               backgroundColor:c,
               alignItems:'center',
               justifyContent:'center',
               transform:[{scale:badgeScale}],
             }}>
-              <Text style={{color:'#fff',fontSize:56,fontWeight:'800'}}>{cur.g}</Text>
+              <Text style={{color:'#fff',fontSize:38,fontWeight:'900'}}>{GS[g]}</Text>
             </Animated.View>
             <View style={{flex:1}}>
-              <Text style={{color:'#fff',fontSize:26,fontWeight:'800'}}>{GN[cur.g][0]}</Text>
-              <Text style={{color:'#ffffffbb',marginTop:2}}>{GN[cur.g][1]}</Text>
+              <Text style={{color:'#fff',fontSize:25,fontWeight:'800'}}>{GN[g][0]}</Text>
+              <Text style={{color:'#ffffffbb',marginTop:2}}>{GN[g][1]}</Text>
             </View>
             <View style={{width:72,height:72,alignItems:'center',justifyContent:'center'}}>
               <Svg width={72} height={72} style={{position:'absolute',transform:[{rotate:'-90deg'}]}}>
@@ -136,7 +137,7 @@ export default function Result(){
           <Card style={{borderWidth:1,borderColor:T.line}}>
             <View style={{flexDirection:'row',alignItems:'center',gap:8,marginBottom:8}}>
               <Ionicons name="sparkles-outline" size={18} color={GOLD}/>
-              <Txt s={16} w="800">Why {GN[cur.g][0]}?</Txt>
+              <Txt s={16} w="800">Why {GN[g][0]}?</Txt>
             </View>
             <Txt s={14.5} w="700" style={{marginBottom:6}}>{why.headline}</Txt>
             {why.factors.map((f,idx)=>(
@@ -171,11 +172,11 @@ export default function Result(){
 
           <Card style={{borderWidth:1,borderColor:T.line}}>
             <Txt w="700">Class probabilities</Txt>
-            {['A','B','C'].map(x=>(
+            {GRADES.map(x=>(
               <View key={x} style={{flexDirection:'row',alignItems:'center',gap:10,marginTop:10}}>
-                <Txt w="700">{x}</Txt>
-                <View style={{flex:1}}><Bar v={cur.p[x]} c={GC[x]} h={8}/></View>
-                <Txt s={13}>{pc(cur.p[x])}%</Txt>
+                <Txt s={13} w="700" style={{width:82}}>{x}</Txt>
+                <View style={{flex:1}}><Bar v={cur.p?.[x]||0} c={GC[x]} h={8}/></View>
+                <Txt s={13} style={{width:36,textAlign:'right'}}>{pc(cur.p?.[x]||0)}%</Txt>
               </View>
             ))}
           </Card>
@@ -224,13 +225,13 @@ export default function Result(){
                     <Txt s={14}>{b}</Txt>
                   </View>
                 ))}
-                <Txt s={12.5} c={T.mute}>A peanut price isn’t a Grade {cur.g} price until experts approve adjustments.</Txt>
+                <Txt s={12.5} c={T.mute}>A reference farmgate price isn’t a {g} buyer offer until experts approve adjustments.</Txt>
               </Card>
             )
           ):(
             <Card style={{borderWidth:1,borderColor:T.line}}>
-              <Txt w="700">{cur.rv?'Verify with an expert first':GN[cur.g][1]}</Txt>
-              {ADV[cur.g].map(a=>(
+              <Txt w="700">{cur.rv?'Verify with an expert first':GN[g][1]}</Txt>
+              {ADV[g].map(a=>(
                 <View key={a} style={{flexDirection:'row',gap:10,paddingVertical:9}}>
                   <Ionicons name="checkmark" size={20} color={GC.A}/>
                   <Txt style={{flex:1}}>{a}</Txt>

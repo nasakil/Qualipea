@@ -1,3 +1,5 @@
+import {GRADES,normGrade} from './theme';
+
 export const DEFAULT_PI_URL='http://192.168.137.31:5000';
 
 export function normalizeUrl(raw){
@@ -40,32 +42,40 @@ export async function checkPiHealth(baseUrl){
   return {ok:false,url:base,error:lastError||'Unable to reach Raspberry Pi 5'};
 }
 
-function parseGrade(raw){
-  const s=String(raw||'').toUpperCase();
-  if(s.includes('REJECT')||s.includes('GRADE C')||s==='C')return 'C';
-  if(s.includes('CLASS II')||s.includes('GRADE B')||s==='B')return 'B';
-  if(s.includes('EXTRA')||s.includes('CLASS I')||s.includes('GRADE A')||s==='A')return 'A';
-  if(s.includes('A'))return 'A';
-  if(s.includes('C'))return 'C';
-  return 'B';
-}
-
 function normalizeProbabilities(data,g,c){
   const src=data?.probabilities||data?.probs||data?.scores||null;
   if(src&&typeof src==='object'){
-    const getVal=(k)=>{
-      const v=src[k]??src[`Grade ${k}`]??src[`grade_${k.toLowerCase()}`]??src[k.toLowerCase()];
-      if(typeof v!=='number'||Number.isNaN(v))return null;
-      return v>1?v/100:v;
+    const out={};
+    let found=0;
+    const aliases={
+      'Extra Class':['Extra Class','extra_class','extra','EX','A'],
+      'Class I':['Class I','class_1','class1','Class 1','I'],
+      'Class II':['Class II','class_2','class2','Class 2','II','B'],
+      'Defect':['Defect','defect','Defected','defected','Reject','reject','DF','C'],
     };
-    const a=getVal('A'),b=getVal('B'),cc=getVal('C');
-    if(a!==null&&b!==null&&cc!==null){
-      return {A:a,B:b,C:cc};
+    for(const k of GRADES){
+      for(const a of aliases[k]){
+        const v=src[a];
+        if(typeof v==='number'&&!Number.isNaN(v)){
+          out[k]=v>1?v/100:v;
+          found++;
+          break;
+        }
+      }
+    }
+    if(found>=2){
+      GRADES.forEach(k=>{if(typeof out[k]!=='number')out[k]=0});
+      return out;
     }
   }
   const rem=Math.max(0,1-c);
-  const others=['A','B','C'].filter(x=>x!==g);
-  return {[g]:c,[others[0]]:rem*0.6,[others[1]]:rem*0.4};
+  const others=GRADES.filter(x=>x!==g);
+  return {
+    [g]:c,
+    [others[0]]:rem*0.55,
+    [others[1]]:rem*0.30,
+    [others[2]]:rem*0.15,
+  };
 }
 
 export async function classifyKernel(baseUrl,imageUri){
@@ -105,7 +115,7 @@ export async function classifyKernel(baseUrl,imageUri){
 
       const data=await res.json();
       const rawGrade=data.grade??data.class??data.label??data.prediction;
-      const g=parseGrade(rawGrade);
+      const g=normGrade(rawGrade);
       let c=Number(data.confidence??data.score??data.probability??0.85);
       if(Number.isNaN(c))c=0.85;
       if(c>1)c=c/100;
