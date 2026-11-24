@@ -138,6 +138,99 @@ export default function Home(){
           </LinearGradient>
         </Pressable>
 
+        <Card style={{borderWidth:1,borderColor:T.line,marginBottom:14,padding:15}}>
+          <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginBottom:11}}>
+            <View style={{flexDirection:'row',alignItems:'center',gap:9}}>
+              <View style={{
+                width:32,
+                height:32,
+                borderRadius:11,
+                backgroundColor:T.g2+'22',
+                alignItems:'center',
+                justifyContent:'center',
+              }}>
+                <Ionicons name="book-outline" size={17} color={T.g2}/>
+              </View>
+              <Txt s={15.5} w="800">Peanut quality guide</Txt>
+            </View>
+            <Txt s={12} c={T.mute}>{openRef?'Tap to close':'Tap a class'}</Txt>
+          </View>
+
+          <View style={{flexDirection:'row',flexWrap:'wrap',gap:8}}>
+            {REF_GUIDE.map(item=>{
+              const active=openRef===item.id;
+              const col=GC[item.grade];
+              return (
+                <Pressable
+                  key={item.id}
+                  onPress={()=>{sfx('tap');setOpenRef(active?null:item.id)}}
+                  style={({pressed})=>({
+                    flexDirection:'row',
+                    alignItems:'center',
+                    gap:6,
+                    paddingHorizontal:12,
+                    paddingVertical:8,
+                    borderRadius:14,
+                    backgroundColor:active?col:(dark?'#101d15':T.bg),
+                    borderWidth:1,
+                    borderColor:active?col:T.line,
+                    transform:[{scale:pressed&&anim?0.96:1}],
+                  })}
+                >
+                  <View style={{width:7,height:7,borderRadius:4,backgroundColor:active?'#fff':col}}/>
+                  <Text style={{
+                    fontFamily:'OpenRunde-Bold',
+                    fontSize:12.5,
+                    color:active?'#fff':T.ink,
+                  }}>
+                    {item.title}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {openRef&&(()=>{
+            const item=REF_GUIDE.find(x=>x.id===openRef);
+            if(!item)return null;
+            const col=GC[item.grade];
+            return (
+              <View style={{
+                marginTop:12,
+                paddingTop:12,
+                borderTopWidth:1,
+                borderTopColor:T.line,
+                gap:8,
+              }}>
+                <View style={{flexDirection:'row',alignItems:'center',gap:12}}>
+                  <View style={{
+                    width:44,
+                    height:44,
+                    borderRadius:14,
+                    backgroundColor:'#26261f',
+                    alignItems:'center',
+                    justifyContent:'center',
+                  }}>
+                    <Kernel g={item.grade} size={34} rot={-18}/>
+                  </View>
+                  <View style={{flex:1}}>
+                    <Txt s={15} w="800">{item.title}</Txt>
+                    <Txt s={12.5} c={T.mute} style={{marginTop:1}}>{item.summary}</Txt>
+                  </View>
+                </View>
+                <View style={{gap:5,marginTop:2}}>
+                  {item.cues.map(cue=>(
+                    <View key={cue} style={{flexDirection:'row',gap:8}}>
+                      <Text style={{color:col,fontFamily:'OpenRunde-Bold'}}>•</Text>
+                      <Txt s={13} style={{flex:1,lineHeight:18}}>{cue}</Txt>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            );
+          })()}
+        </Card>
+
         <View style={{flexDirection:'row',gap:12}}>
           {[
             [hist.length,'scans saved'],
@@ -164,49 +257,6 @@ export default function Home(){
         <Txt s={19} w="700" style={{marginTop:24,marginBottom:12}}>Recent scans</Txt>
         {hist.slice(0,3).map((h,i)=><Row key={i} h={h} i={i}/>)}
         {!hist.length&&<Txt c={T.mute}>No scans yet.</Txt>}
-
-        <Txt s={19} w="700" style={{marginTop:22,marginBottom:10}}>Peanut quality reference guide</Txt>
-        <Card style={{borderWidth:1,borderColor:T.line,padding:0,overflow:'hidden'}}>
-          {REF_GUIDE.map((item,idx)=>{
-            const isOpen=openRef===item.id;
-            const col=GC[item.grade];
-            return (
-              <View key={item.id} style={{borderTopWidth:idx===0?0:1,borderTopColor:T.line}}>
-                <Pressable
-                  onPress={()=>{sfx('tap');setOpenRef(isOpen?null:item.id)}}
-                  style={{flexDirection:'row',alignItems:'center',gap:12,padding:15}}
-                >
-                  <View style={{
-                    width:40,
-                    height:40,
-                    borderRadius:13,
-                    backgroundColor:'#26261f',
-                    alignItems:'center',
-                    justifyContent:'center',
-                  }}>
-                    <Kernel g={item.grade} size={30} rot={-18}/>
-                  </View>
-                  <View style={{flex:1}}>
-                    <Txt s={14.5} w="700">{item.title}</Txt>
-                    <Txt s={12} c={col} w="700" style={{marginTop:1}}>{item.badge}</Txt>
-                  </View>
-                  <Ionicons name={isOpen?'chevron-up':'chevron-down'} size={19} color={T.mute}/>
-                </Pressable>
-                {isOpen&&(
-                  <View style={{paddingHorizontal:16,paddingBottom:16,gap:6}}>
-                    <Txt s={13.5} c={T.mute} style={{lineHeight:19,marginBottom:4}}>{item.summary}</Txt>
-                    {item.cues.map(cue=>(
-                      <View key={cue} style={{flexDirection:'row',gap:8}}>
-                        <Text style={{color:col,fontWeight:'800'}}>•</Text>
-                        <Txt s={13} style={{flex:1,lineHeight:19}}>{cue}</Txt>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-            );
-          })}
-        </Card>
       </ScrollView>
     </View>
   );
