@@ -28,6 +28,7 @@ function Sparkle({size=28,color='#ffffff'}){
 export default function Onboarding(){
   const {dark,T,setScr,oi,setOi,ob,anim}=useApp();
   const [pageW,setPageW]=useState(W);
+  const [pageH,setPageH]=useState(0);
   const floatY=useRef(new Animated.Value(0)).current;
 
   useEffect(()=>{sfx('ob'+(oi+1))},[oi]);
@@ -193,14 +194,20 @@ export default function Onboarding(){
       </View>
 
       {/* Paged slides */}
-      <View style={{flex:1}} onLayout={e=>{const w=e.nativeEvent.layout.width; if(w>0)setPageW(w)}}>
+      <View
+        style={{flex:1}}
+        onLayout={e=>{
+          const {width,height}=e.nativeEvent.layout;
+          if(width>0)setPageW(width);
+          if(height>0)setPageH(height);
+        }}
+      >
         <FlatList
           ref={ob}
           data={OB}
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{flexGrow:1}}
           style={{flex:1}}
           keyExtractor={x=>x[0]}
           getItemLayout={(_,index)=>({length:pageW,offset:pageW*index,index})}
@@ -209,21 +216,31 @@ export default function Onboarding(){
             if(idx>=0&&idx<OB.length)setOi(idx);
           }}
           renderItem={({item,index})=>(
-            <View style={{width:pageW,height:'100%',alignItems:'center',justifyContent:'center',paddingHorizontal:30,paddingTop:24}}>
-              <View style={{height:250,alignItems:'center',justifyContent:'center',marginBottom:32}}>
-                <View style={{position:'absolute',top:12,right:-26}}>
-                  <Sparkle size={30} color={GOLD}/>
+            <View style={{
+              width:pageW,
+              height:pageH||undefined,
+              flex:pageH?undefined:1,
+              alignItems:'center',
+              justifyContent:'flex-end',
+              paddingHorizontal:30,
+              paddingBottom:34,
+            }}>
+              <View style={{flex:1,alignItems:'center',justifyContent:'center',paddingTop:24}}>
+                <View style={{alignItems:'center',justifyContent:'center'}}>
+                  <View style={{position:'absolute',top:-14,right:-26}}>
+                    <Sparkle size={30} color={GOLD}/>
+                  </View>
+                  <Animated.View style={{transform:[{translateY:floatY}]}}>
+                    {Scene(index)}
+                  </Animated.View>
+                  <View style={{
+                    width:120,
+                    height:14,
+                    borderRadius:99,
+                    backgroundColor:dark?'rgba(0,0,0,0.35)':'rgba(10,45,25,0.09)',
+                    marginTop:20,
+                  }}/>
                 </View>
-                <Animated.View style={{transform:[{translateY:floatY}]}}>
-                  {Scene(index)}
-                </Animated.View>
-                <View style={{
-                  width:120,
-                  height:14,
-                  borderRadius:99,
-                  backgroundColor:dark?'rgba(0,0,0,0.35)':'rgba(10,45,25,0.09)',
-                  marginTop:18,
-                }}/>
               </View>
 
               <Text style={{
