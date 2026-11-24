@@ -1,5 +1,6 @@
 import React,{useState} from 'react';
-import Svg,{Path,Circle,Ellipse,Defs,RadialGradient,LinearGradient,Stop,G} from 'react-native-svg';
+import {View} from 'react-native';
+import Svg,{Path,Circle,Ellipse,Defs,RadialGradient,LinearGradient,Stop} from 'react-native-svg';
 import {normGrade} from '../theme';
 
 const PALETTES={
@@ -20,20 +21,20 @@ export const Kernel=({g='Extra Class',size=80,rot=-18})=>{
   const bodyPath='M14 54 C14 33, 30 22, 52 24 C70 25, 84 35, 89 47 C92 53, 89 60, 81 65 C68 74, 46 77, 29 73 C18 70, 14 63, 14 54 Z';
 
   return (
-    <Svg width={size} height={size} viewBox="0 0 100 100">
-      <Defs>
-        <RadialGradient id={`${id}_body`} cx="36%" cy="32%" r="76%">
-          <Stop offset="0%" stopColor={p.hi}/>
-          <Stop offset="58%" stopColor={p.mid}/>
-          <Stop offset="100%" stopColor={p.lo}/>
-        </RadialGradient>
-        <LinearGradient id={`${id}_shine`} x1="0%" y1="0%" x2="100%" y2="100%">
-          <Stop offset="0%" stopColor={p.rim} stopOpacity={0.55}/>
-          <Stop offset="100%" stopColor={p.rim} stopOpacity={0}/>
-        </LinearGradient>
-      </Defs>
+    <View style={{width:size,height:size,transform:[{rotate:`${rot}deg`}]}}>
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <Defs>
+          <RadialGradient id={`${id}_body`} cx="36%" cy="32%" r="76%">
+            <Stop offset="0%" stopColor={p.hi}/>
+            <Stop offset="58%" stopColor={p.mid}/>
+            <Stop offset="100%" stopColor={p.lo}/>
+          </RadialGradient>
+          <LinearGradient id={`${id}_shine`} x1="0%" y1="0%" x2="100%" y2="100%">
+            <Stop offset="0%" stopColor={p.rim} stopOpacity={0.55}/>
+            <Stop offset="100%" stopColor={p.rim} stopOpacity={0}/>
+          </LinearGradient>
+        </Defs>
 
-      <G originX={50} originY={50} rotation={rot}>
         {/* Soft drop shadow underneath kernel */}
         <Ellipse cx={51} cy={78} rx={30} ry={5} fill="#000000" fillOpacity={0.18}/>
 
@@ -120,7 +121,7 @@ export const Kernel=({g='Extra Class',size=80,rot=-18})=>{
             />
           </>
         )}
-      </G>
-    </Svg>
+      </Svg>
+    </View>
   );
 };

@@ -112,11 +112,11 @@ export default function Home(){
     <View style={{flex:1}}>
       {dark&&(
         <LinearGradient
-          colors={['#173123','transparent']}
+          colors={['#1b2e25','transparent']}
           start={{x:0.1,y:0}}
           end={{x:0.85,y:1}}
           pointerEvents="none"
-          style={{position:'absolute',top:0,left:0,right:0,height:240}}
+          style={{position:'absolute',top:0,left:0,right:0,height:210}}
         />
       )}
       <ScrollView contentContainerStyle={{paddingHorizontal:20,paddingBottom:145}} showsVerticalScrollIndicator={false}>
@@ -167,7 +167,7 @@ export default function Home(){
           style={({pressed})=>({marginBottom:18,transform:[{scale:pressed&&anim?.985:1}]})}
         >
           <LinearGradient
-            colors={['#1b6242','#0b2b1e']}
+            colors={T.hero}
             start={{x:0,y:0}}
             end={{x:1,y:1}}
             style={{borderRadius:30,padding:22,minHeight:184,overflow:'hidden'}}
@@ -229,7 +229,7 @@ export default function Home(){
                       onPress={()=>openGuideItem(item)}
                       style={({pressed})=>({
                         flex:1,
-                        backgroundColor:dark?'#0f1b14':T.bg,
+                        backgroundColor:dark?'#151e1a':T.bg,
                         borderRadius:20,
                         borderWidth:1,
                         borderColor:T.line,

@@ -1,7 +1,7 @@
 import React,{useState} from 'react';
 import {View,Text,Pressable,ScrollView,TextInput,KeyboardAvoidingView,Platform} from 'react-native';
 import {LinearGradient} from 'expo-linear-gradient';
-import Svg,{Path,Circle,Ellipse,Defs,RadialGradient,Stop,G} from 'react-native-svg';
+import Svg,{Path,Circle,Ellipse,Defs,RadialGradient,Stop} from 'react-native-svg';
 import {Ionicons} from '@expo/vector-icons';
 import {GC,GS,GOLD,normGrade,pc} from '../theme';
 import {GN,ADV,PRICE_CONFIG,defectById,buildWhySummary} from '../data';
@@ -15,16 +15,16 @@ function DefectArt({id,size=48}){
   const isDark=id==='moldy'||id==='insect';
 
   return (
-    <Svg width={size} height={size} viewBox="0 0 64 64">
-      <Defs>
-        <RadialGradient id={`df_${id}`} cx="36%" cy="32%" r="76%">
-          <Stop offset="0%" stopColor={isDark?'#b38358':'#e2aa76'}/>
-          <Stop offset="62%" stopColor={isDark?'#7d532f':'#b97340'}/>
-          <Stop offset="100%" stopColor={isDark?'#472b15':'#793f1c'}/>
-        </RadialGradient>
-      </Defs>
+    <View style={{width:size,height:size,transform:[{rotate:'-16deg'}]}}>
+      <Svg width={size} height={size} viewBox="0 0 64 64">
+        <Defs>
+          <RadialGradient id={`df_${id}`} cx="36%" cy="32%" r="76%">
+            <Stop offset="0%" stopColor={isDark?'#b38358':'#e2aa76'}/>
+            <Stop offset="62%" stopColor={isDark?'#7d532f':'#b97340'}/>
+            <Stop offset="100%" stopColor={isDark?'#472b15':'#793f1c'}/>
+          </RadialGradient>
+        </Defs>
 
-      <G originX={32} originY={32} rotation={-16}>
         {id==='shriveled'?(
           <>
             <Path d={shriveledBody} fill={`url(#df_${id})`} stroke="#633516" strokeWidth={1.1}/>
@@ -70,8 +70,8 @@ function DefectArt({id,size=48}){
             <Circle cx={28} cy={39} r={1.2} fill="#ebd6b0"/>
           </>
         )}
-      </G>
-    </Svg>
+      </Svg>
+    </View>
   );
 }
 
@@ -146,7 +146,7 @@ export default function Recommendations(){
     >
       <ScrollView contentContainerStyle={{paddingBottom:125}} showsVerticalScrollIndicator={false}>
         <LinearGradient
-          colors={['#17573b','#0b2b1e']}
+          colors={T.hero}
           style={{padding:20,paddingTop:56,paddingBottom:24,borderBottomLeftRadius:32,borderBottomRightRadius:32}}
         >
           <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center'}}>

@@ -57,7 +57,7 @@ export default function Dashboard(){
       <Top title="Dashboard"/>
 
       <LinearGradient
-        colors={['#1b6242','#0b2b1e']}
+        colors={T.hero}
         start={{x:0,y:0}}
         end={{x:1,y:1}}
         style={{borderRadius:30,padding:22}}

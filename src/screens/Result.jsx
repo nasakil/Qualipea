@@ -38,7 +38,7 @@ export default function Result(){
     <View style={{flex:1,backgroundColor:T.bg}}>
       <ScrollView contentContainerStyle={{paddingBottom:130}} showsVerticalScrollIndicator={false}>
         <LinearGradient
-          colors={['#17573b','#0b2b1e']}
+          colors={T.hero}
           style={{padding:20,paddingTop:56,paddingBottom:28,borderBottomLeftRadius:34,borderBottomRightRadius:34}}
         >
           <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center'}}>
