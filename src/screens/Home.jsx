@@ -1,8 +1,9 @@
-import React,{useEffect,useRef} from 'react';
+import React,{useEffect,useRef,useState} from 'react';
 import {View,Text,Pressable,ScrollView,Animated} from 'react-native';
 import {LinearGradient} from 'expo-linear-gradient';
 import {Ionicons} from '@expo/vector-icons';
 import {GOLD,GC,pc} from '../theme';
+import {REF_GUIDE} from '../data';
 import {Kernel,Card,Txt,Chip} from '../components';
 import Row from '../components/Row';
 import Top from '../components/Top';
@@ -18,6 +19,7 @@ function getGreeting(){
 
 export default function Home(){
   const {T,dark,demo,dev,piUrl,hist,connect,startScan,askExit,anim}=useApp();
+  const [openRef,setOpenRef]=useState(null);
   const pulse=useRef(new Animated.Value(1)).current;
   const floatY=useRef(new Animated.Value(0)).current;
 
@@ -210,6 +212,49 @@ export default function Home(){
         <Txt s={19} w="700" style={{marginTop:24,marginBottom:12}}>Recent scans</Txt>
         {hist.slice(0,3).map((h,i)=><Row key={i} h={h} i={i}/>)}
         {!hist.length&&<Txt c={T.mute}>No scans yet.</Txt>}
+
+        <Txt s={19} w="700" style={{marginTop:22,marginBottom:10}}>Peanut quality reference guide</Txt>
+        <Card style={{borderWidth:1,borderColor:T.line,padding:0,overflow:'hidden'}}>
+          {REF_GUIDE.map((item,idx)=>{
+            const isOpen=openRef===item.id;
+            const col=GC[item.grade];
+            return (
+              <View key={item.id} style={{borderTopWidth:idx===0?0:1,borderTopColor:T.line}}>
+                <Pressable
+                  onPress={()=>{sfx('tap');setOpenRef(isOpen?null:item.id)}}
+                  style={{flexDirection:'row',alignItems:'center',gap:12,padding:15}}
+                >
+                  <View style={{
+                    width:40,
+                    height:40,
+                    borderRadius:13,
+                    backgroundColor:'#26261f',
+                    alignItems:'center',
+                    justifyContent:'center',
+                  }}>
+                    <Kernel g={item.grade} size={30} rot={-18}/>
+                  </View>
+                  <View style={{flex:1}}>
+                    <Txt s={14.5} w="700">{item.title}</Txt>
+                    <Txt s={12} c={col} w="700" style={{marginTop:1}}>{item.badge}</Txt>
+                  </View>
+                  <Ionicons name={isOpen?'chevron-up':'chevron-down'} size={19} color={T.mute}/>
+                </Pressable>
+                {isOpen&&(
+                  <View style={{paddingHorizontal:16,paddingBottom:16,gap:6}}>
+                    <Txt s={13.5} c={T.mute} style={{lineHeight:19,marginBottom:4}}>{item.summary}</Txt>
+                    {item.cues.map(cue=>(
+                      <View key={cue} style={{flexDirection:'row',gap:8}}>
+                        <Text style={{color:col,fontWeight:'800'}}>•</Text>
+                        <Txt s={13} style={{flex:1,lineHeight:19}}>{cue}</Txt>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+            );
+          })}
+        </Card>
       </ScrollView>
     </View>
   );

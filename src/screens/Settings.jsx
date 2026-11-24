@@ -1,13 +1,17 @@
-import React from 'react';
-import {View,ScrollView,Switch,TextInput} from 'react-native';
+import React,{useState} from 'react';
+import {View,Text,Pressable,ScrollView,Switch,TextInput} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {GC} from '../theme';
+import {TROUBLESHOOT_STEPS,HARDWARE_SPECS,SOFTWARE_SPECS} from '../data';
 import {Card,Txt,Btn,Chip} from '../components';
 import Top from '../components/Top';
 import {useApp} from '../AppContext';
+import {sfx} from '../sound';
 
 export default function Settings(){
   const {snd,toggleSnd,anim,toggleAnim,piUrl,setPiUrl,dark,setDark,T,demo,dev,dg,connect,toggleDemo,askExit,runDiag}=useApp();
+  const [showTrouble,setShowTrouble]=useState(false);
+  const [showSpecs,setShowSpecs]=useState(false);
   const on=dev===1;
   const R=[
     ['hardware-chip-outline','Raspberry Pi 5',on,on?`Connected (${piUrl.replace(/^https?:\/\//,'')})`:dev===2?'Connecting…':`Offline · ${piUrl.replace(/^https?:\/\//,'')}`],
@@ -112,6 +116,81 @@ export default function Settings(){
             <Switch value={v} onValueChange={f} trackColor={{false:T.line,true:T.g2}}/>
           </View>
         ))}
+      </Card>
+
+      <Card style={{marginTop:14,borderWidth:1,borderColor:T.line,padding:0,overflow:'hidden'}}>
+        <Pressable
+          onPress={()=>{sfx('tap');setShowTrouble(v=>!v)}}
+          style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',padding:16}}
+        >
+          <View style={{flexDirection:'row',alignItems:'center',gap:12,flex:1}}>
+            <View style={{width:38,height:38,borderRadius:12,backgroundColor:T.g2+'22',alignItems:'center',justifyContent:'center'}}>
+              <Ionicons name="construct-outline" size={20} color={T.g2}/>
+            </View>
+            <View style={{flex:1}}>
+              <Txt s={15.5} w="700">Chamber setup &amp; troubleshooting</Txt>
+              <Txt s={12.5} c={T.mute}>7-step Raspberry Pi SSH &amp; stream guide</Txt>
+            </View>
+          </View>
+          <Ionicons name={showTrouble?'chevron-up':'chevron-down'} size={20} color={T.mute}/>
+        </Pressable>
+
+        {showTrouble&&(
+          <View style={{paddingHorizontal:16,paddingBottom:16,borderTopWidth:1,borderTopColor:T.line,gap:12,paddingTop:14}}>
+            {TROUBLESHOOT_STEPS.map(([text,cmd],idx)=>(
+              <View key={idx} style={{flexDirection:'row',gap:10}}>
+                <View style={{width:24,height:24,borderRadius:12,backgroundColor:T.g2+'24',alignItems:'center',justifyContent:'center',marginTop:1}}>
+                  <Text style={{color:T.g2,fontWeight:'800',fontSize:12}}>{idx+1}</Text>
+                </View>
+                <View style={{flex:1,gap:6}}>
+                  <Txt s={13.5} style={{lineHeight:19}}>{text}</Txt>
+                  {cmd&&(
+                    <View style={{backgroundColor:T.bg,borderWidth:1,borderColor:T.line,borderRadius:10,paddingHorizontal:11,paddingVertical:8}}>
+                      <Text selectable style={{color:T.g2,fontFamily:'monospace',fontSize:12.5,fontWeight:'700'}}>{cmd}</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+      </Card>
+
+      <Card style={{marginTop:14,borderWidth:1,borderColor:T.line,padding:0,overflow:'hidden'}}>
+        <Pressable
+          onPress={()=>{sfx('tap');setShowSpecs(v=>!v)}}
+          style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',padding:16}}
+        >
+          <View style={{flexDirection:'row',alignItems:'center',gap:12,flex:1}}>
+            <View style={{width:38,height:38,borderRadius:12,backgroundColor:T.g2+'22',alignItems:'center',justifyContent:'center'}}>
+              <Ionicons name="hardware-chip-outline" size={20} color={T.g2}/>
+            </View>
+            <View style={{flex:1}}>
+              <Txt s={15.5} w="700">Hardware &amp; software specs</Txt>
+              <Txt s={12.5} c={T.mute}>Imaging chamber &amp; YOLO11-cls stack</Txt>
+            </View>
+          </View>
+          <Ionicons name={showSpecs?'chevron-up':'chevron-down'} size={20} color={T.mute}/>
+        </Pressable>
+
+        {showSpecs&&(
+          <View style={{paddingHorizontal:16,paddingBottom:16,borderTopWidth:1,borderTopColor:T.line,paddingTop:14,gap:10}}>
+            <Txt s={12} w="800" c={T.g2}>HARDWARE</Txt>
+            {HARDWARE_SPECS.map(([name,detail])=>(
+              <View key={name}>
+                <Txt s={14} w="700">{name}</Txt>
+                <Txt s={12.5} c={T.mute}>{detail}</Txt>
+              </View>
+            ))}
+            <Txt s={12} w="800" c={T.g2} style={{marginTop:8}}>SOFTWARE</Txt>
+            {SOFTWARE_SPECS.map(([name,detail])=>(
+              <View key={name}>
+                <Txt s={14} w="700">{name}</Txt>
+                <Txt s={12.5} c={T.mute}>{detail}</Txt>
+              </View>
+            ))}
+          </View>
+        )}
       </Card>
 
       <View style={{flexDirection:'row',marginTop:14}}>

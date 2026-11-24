@@ -42,8 +42,10 @@ export async function checkPiHealth(baseUrl){
 
 function parseGrade(raw){
   const s=String(raw||'').toUpperCase();
+  if(s.includes('REJECT')||s.includes('GRADE C')||s==='C')return 'C';
+  if(s.includes('CLASS II')||s.includes('GRADE B')||s==='B')return 'B';
+  if(s.includes('EXTRA')||s.includes('CLASS I')||s.includes('GRADE A')||s==='A')return 'A';
   if(s.includes('A'))return 'A';
-  if(s.includes('B'))return 'B';
   if(s.includes('C'))return 'C';
   return 'B';
 }
@@ -119,6 +121,12 @@ export async function classifyKernel(baseUrl,imageUri){
           model:data.model||'yolo11n-cls 1.0.0',
           price:typeof (data.price??data.reference_price)==='number'?(data.price??data.reference_price):null,
           priceSource:data.price_source||data.source||null,
+          reason:data.reason||data.explanation||null,
+          defectRate:typeof data.defect_rate==='number'?data.defect_rate:null,
+          total:typeof data.total==='number'?data.total:null,
+          normal:typeof data.normal==='number'?data.normal:null,
+          defect:typeof data.defect==='number'?data.defect:null,
+          inferenceTime:typeof data.inference_time==='number'?data.inference_time:null,
           fromPi:true,
         },
       };

@@ -10,12 +10,18 @@ import {sfx} from '../sound';
 
 export default function History(){
   const {T,filt,setFilt,hist,startScan,toast,anim}=useApp();
-  const l=hist.filter(h=>filt==='All'||(filt==='Flagged'?h.r:h.g===filt));
+  const baseFiltered=hist.filter(h=>{
+    if(filt==='All'||filt==='Oldest')return true;
+    if(filt==='Today')return h.d===0;
+    if(filt==='Flagged')return Boolean(h.r);
+    return h.g===filt;
+  });
+  const l=filt==='Oldest'?[...baseFiltered].reverse():baseFiltered;
   const n={A:0,B:0,C:0};
-  let flagged=0;
-  hist.forEach(h=>{n[h.g]++;if(h.r)flagged++});
+  let flagged=0,todayCount=0;
+  hist.forEach(h=>{n[h.g]++;if(h.r)flagged++;if(h.d===0)todayCount++});
 
-  const counts={All:hist.length,A:n.A,B:n.B,C:n.C,Flagged:flagged};
+  const counts={All:hist.length,Today:todayCount,Oldest:hist.length,A:n.A,B:n.B,C:n.C,Flagged:flagged};
 
   const exportSummary=async()=>{
     if(!hist.length){
@@ -84,9 +90,9 @@ export default function History(){
       </Card>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginVertical:14}}>
-        {['All','A','B','C','Flagged'].map(f=>{
+        {['All','Today','A','B','C','Flagged','Oldest'].map(f=>{
           const active=filt===f;
-          const label=f.length===1?'Grade '+f:f;
+          const label=f.length===1?'Grade '+f:(f==='Oldest'?'Oldest first':f);
           return (
             <Pressable
               key={f}
