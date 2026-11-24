@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { View, Text, Pressable, Animated, Image, useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GR, GC, GRADES, normGrade, pc, LT, DK, Th, AnimCtx } from './theme';
-import { GN, SEED, buildWhySummary } from './data';
+import { GN, SEED, buildWhySummary, suggestDefects } from './data';
 import { Kernel, Card, Txt } from './components';
 import { sfx, setSfx, initAudio } from './sound';
 import { DEFAULT_PI_URL, normalizeUrl, checkPiHealth, classifyKernel } from './api';
@@ -211,13 +211,14 @@ export function AppProvider({ children }) {
 
   const makeFallbackResult = (img, preset = 'auto') => {
     if (preset === 'low') {
-      return {
+      const base = {
         g: 'Class II',
         c: 0.66,
         rv: true,
         img: img || null,
         p: { 'Extra Class': 0.04, 'Class I': 0.10, 'Class II': 0.66, 'Defect': 0.20 },
       };
+      return { ...base, defects: suggestDefects(base), autoDefects: true, defectsConfirmed: false };
     }
     const g = GRADES.includes(preset)
       ? preset
@@ -228,13 +229,14 @@ export function AppProvider({ children }) {
     const w1 = 0.55;
     const w2 = 0.30;
     const w3 = 0.15;
-    return {
+    const base = {
       g,
       c,
       rv: c < .75,
       img: img || null,
       p: { [g]: c, [o[0]]: rem * w1, [o[1]]: rem * w2, [o[2]]: rem * w3 },
     };
+    return { ...base, defects: suggestDefects(base), autoDefects: true, defectsConfirmed: false };
   };
 
   const analyze = async () => {
@@ -268,7 +270,13 @@ export function AppProvider({ children }) {
     let finalCur;
     if (piRes.ok) {
       setDev(1);
-      finalCur = { ...piRes.result, img: photo };
+      finalCur = {
+        ...piRes.result,
+        img: photo,
+        defects: suggestDefects(piRes.result),
+        autoDefects: true,
+        defectsConfirmed: false,
+      };
     } else {
       finalCur = makeFallbackResult(photo);
       toast('Pi offline · using local estimate');
@@ -352,11 +360,12 @@ export function AppProvider({ children }) {
 
   const openRecommendations = (scanObj, histIdx = null, fromHistory = false) => {
     if (!scanObj) return;
-    const payload = { ...scanObj, g: normGrade(scanObj.g), histIdx, fromHistory };
+    const autoList = Array.isArray(scanObj.defects) ? scanObj.defects : suggestDefects(scanObj);
+    const payload = { ...scanObj, g: normGrade(scanObj.g), defects: autoList, histIdx, fromHistory };
     setRecScan(payload);
     close();
     const g = normGrade(scanObj.x || scanObj.g);
-    if (g === 'Extra Class' || (Array.isArray(scanObj.defects) && scanObj.defects.length > 0)) {
+    if (g === 'Extra Class' || scanObj.defectsConfirmed) {
       setScr('recs', 1);
     } else {
       setScr('defects', 1);
@@ -364,15 +373,15 @@ export function AppProvider({ children }) {
   };
 
   const saveScanDefects = (defects) => {
-    setRecScan(prev => prev ? { ...prev, defects } : prev);
+    setRecScan(prev => prev ? { ...prev, defects, defectsConfirmed: true } : prev);
     if (recScan && recScan.histIdx !== null && recScan.histIdx !== undefined) {
       const next = [...hist];
       if (next[recScan.histIdx]) {
-        next[recScan.histIdx] = { ...next[recScan.histIdx], defects };
+        next[recScan.histIdx] = { ...next[recScan.histIdx], defects, defectsConfirmed: true };
         setHist(next);
       }
     } else if (cur) {
-      setCur(prev => prev ? { ...prev, defects } : prev);
+      setCur(prev => prev ? { ...prev, defects, defectsConfirmed: true } : prev);
     }
   };
 
