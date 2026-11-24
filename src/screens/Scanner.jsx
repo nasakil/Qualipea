@@ -7,8 +7,17 @@ import {Kernel,Btn,Brk} from '../components';
 import {useApp} from '../AppContext';
 import {sfx} from '../sound';
 
+const SIM_PRESETS=[
+  ['auto','Auto','#9db5a7'],
+  ['Extra Class','EX',GC['Extra Class']],
+  ['Class I','I',GC['Class I']],
+  ['Class II','II',GC['Class II']],
+  ['Defect','DF',GC['Defect']],
+  ['low','Low?',GOLD],
+];
+
 export default function Scanner(){
-  const {demo,setScr,cap,setCap,photo,setPhoto,scan,analyze,toast,anim}=useApp();
+  const {demo,setScr,cap,setCap,photo,setPhoto,scan,analyze,toast,anim,demoSim,setDemoSim}=useApp();
   const [permission,requestPermission]=useCameraPermissions();
   const [taking,setTaking]=useState(false);
   const [torch,setTorch]=useState(false);
@@ -151,7 +160,7 @@ export default function Scanner(){
 
             <View style={{width:220,height:220,alignItems:'center',justifyContent:'center'}}>
               <Brk s={38} c={cap?GC.A:GOLD}/>
-              {demo&&<Kernel g="Class II" size={130}/>}
+              {demo&&<Kernel g={demoSim==='auto'||demoSim==='low'?'Class II':demoSim} size={136}/>}
               {!cap&&anim&&(
                 <Animated.View style={{
                   position:'absolute',
@@ -165,10 +174,49 @@ export default function Scanner(){
             </View>
 
             <View style={{position:'absolute',top:16,backgroundColor:'#000a',paddingHorizontal:13,paddingVertical:6,borderRadius:99}}>
-              <Text style={{color:'#fff',fontWeight:'700',fontSize:12.5}}>
-                {cap?'✓ Image captured':(demo?'Live preview (Demo)':(torch?'Live camera · Torch on':'Live camera'))}
+              <Text style={{color:'#fff',fontFamily:'OpenRunde-Bold',fontSize:12.5}}>
+                {cap?'✓ Image captured':(demo?(demoSim==='auto'?'Live preview (Demo)':`Simulate: ${demoSim==='low'?'Low confidence':demoSim}`):(torch?'Live camera · Torch on':'Live camera'))}
               </Text>
             </View>
+
+            {demo&&!cap&&(
+              <View style={{
+                position:'absolute',
+                bottom:14,
+                left:12,
+                right:12,
+                flexDirection:'row',
+                justifyContent:'center',
+                flexWrap:'wrap',
+                gap:6,
+              }}>
+                {SIM_PRESETS.map(([key,label,col])=>{
+                  const active=demoSim===key;
+                  return (
+                    <Pressable
+                      key={key}
+                      onPress={()=>{sfx('tap');setDemoSim(key)}}
+                      style={{
+                        paddingHorizontal:11,
+                        paddingVertical:6,
+                        borderRadius:99,
+                        backgroundColor:active?col:'rgba(8,18,12,0.78)',
+                        borderWidth:1,
+                        borderColor:active?col:'rgba(255,255,255,0.16)',
+                      }}
+                    >
+                      <Text style={{
+                        color:active?(key==='low'?'#1b1303':'#fff'):'#d6e6dc',
+                        fontFamily:'OpenRunde-Bold',
+                        fontSize:11.5,
+                      }}>
+                        {label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
           </>
         )}
       </View>

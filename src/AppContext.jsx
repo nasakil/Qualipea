@@ -46,6 +46,7 @@ export function AppProvider({children}){
   const [piUrl,setPiUrl]=useState(DEFAULT_PI_URL);
   const [recScan,setRecScan]=useState(null);
   const [zoomImg,setZoomImg]=useState(null);
+  const [demoSim,setDemoSim]=useState('auto');
 
   const hist=demo?hd:hr;
   const setHist=demo?setHd:setHr;
@@ -208,15 +209,25 @@ export function AppProvider({children}){
   const startScan=()=>!demo?setScr('prep',1):(dev===1?setScr('prep',1):connect(()=>setScr('prep',1)));
   const openCam=()=>{setCap(false);setPhoto(null);setScr('cam',1)};
 
-  const makeFallbackResult=(img)=>{
-    const r=Math.random();
-    const g=r<.32?'Extra Class':r<.62?'Class I':r<.85?'Class II':'Defect';
-    const c=.62+Math.random()*.35;
+  const makeFallbackResult=(img,preset='auto')=>{
+    if(preset==='low'){
+      return {
+        g:'Class II',
+        c:0.66,
+        rv:true,
+        img:img||null,
+        p:{'Extra Class':0.04,'Class I':0.10,'Class II':0.66,'Defect':0.20},
+      };
+    }
+    const g=GRADES.includes(preset)
+      ? preset
+      : (()=>{const r=Math.random(); return r<.28?'Extra Class':r<.56?'Class I':r<.80?'Class II':'Defect'})();
+    const c=preset==='Extra Class'?0.95:preset==='Class I'?0.89:preset==='Class II'?0.82:preset==='Defect'?0.91:(.66+Math.random()*.31);
     const o=GRADES.filter(x=>x!==g);
     const rem=Math.max(0,1-c);
-    const w1=0.5+Math.random()*0.2;
-    const w2=(1-w1)*0.65;
-    const w3=1-w1-w2;
+    const w1=0.55;
+    const w2=0.30;
+    const w3=0.15;
     return {
       g,
       c,
@@ -231,7 +242,7 @@ export function AppProvider({children}){
     setScr('proc',1);
 
     if(demo||!photo){
-      const nextCur=makeFallbackResult(null);
+      const nextCur=makeFallbackResult(null,demo?demoSim:'auto');
       setCur(nextCur);
       [1,2,3,4].forEach(i=>setTimeout(()=>{setPs(i);sfx('step',i-1)},i*650));
       setTimeout(()=>{
@@ -536,7 +547,7 @@ export function AppProvider({children}){
 
   const value={
     snd,toggleSnd,anim,toggleAnim,
-    piUrl,setPiUrl,recScan,setRecScan,zoomImg,setZoomImg,
+    piUrl,setPiUrl,recScan,setRecScan,zoomImg,setZoomImg,demoSim,setDemoSim,
     openRecommendations,saveScanDefects,saveScanKg,confirmDelete,
     sys,dark,setDark,T,
     scr,setScr,goTab,navDir,
