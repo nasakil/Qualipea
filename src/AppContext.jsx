@@ -382,6 +382,15 @@ export function AppProvider({ children }) {
     setScr('recs', 1);
   };
 
+  const openDefectEditor = (scanObj, returnTo = 'res', histIdx = null, fromHistory = false) => {
+    if (!scanObj) return;
+    const autoList = Array.isArray(scanObj.defects) ? scanObj.defects : suggestDefects(scanObj);
+    const payload = { ...scanObj, g: normGrade(scanObj.g), defects: autoList, histIdx, fromHistory, returnTo };
+    setRecScan(payload);
+    close();
+    setScr('defects', 1);
+  };
+
   const saveScanDefects = (defects) => {
     setRecScan(prev => prev ? { ...prev, defects, defectsConfirmed: true } : prev);
     if (recScan && recScan.histIdx !== null && recScan.histIdx !== undefined) {
@@ -568,7 +577,7 @@ export function AppProvider({ children }) {
     snd, toggleSnd, anim, toggleAnim,
     piUrl, setPiUrl, recScan, setRecScan, zoomImg, setZoomImg, demoSim, setDemoSim,
     seenOnb, setSeenOnb, skipPrep, setSkipPrep, completeOnboarding,
-    openRecommendations, saveScanDefects, saveScanKg, confirmDelete,
+    openRecommendations, openDefectEditor, saveScanDefects, saveScanKg, confirmDelete,
     sys, dark, setDark, T,
     scr, setScr, goTab, navDir,
     oi, setOi, demo, setDemo, dev, setDev,

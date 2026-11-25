@@ -55,21 +55,12 @@ export default function DefectSelection(){
     });
   };
 
+  const dest=recScan?.returnTo||'recs';
+
   const handleConfirm=()=>{
-    if(!selected.length&&normGrade(recScan?.x||recScan?.g)!=='Extra Class'){
-      setSheet({
-        ic:'alert-circle-outline',
-        title:'Select a defect',
-        body:'Please select at least one defect you see on the tray, or tap "No defects" if the batch looks clean.',
-        btns:[
-          ['No defects','sec',()=>{close();saveScanDefects([]);setScr('recs',1)}],
-          ['Pick defects','',close],
-        ],
-      });
-      return;
-    }
+    sfx('tap');
     saveScanDefects(selected);
-    setScr('recs',1);
+    setScr(dest,dest==='res'?-1:1);
   };
 
   const g=normGrade(recScan?.x||recScan?.g);
@@ -79,7 +70,7 @@ export default function DefectSelection(){
       <ScrollView contentContainerStyle={{paddingHorizontal:20,paddingTop:56,paddingBottom:130}} showsVerticalScrollIndicator={false}>
         <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center'}}>
           <Pressable
-            onPress={()=>{sfx('tap');setScr(recScan?.fromHistory?'hist':'res',-1)}}
+            onPress={()=>{sfx('tap');setScr(dest,-1)}}
             style={({pressed})=>({
               width:44,
               height:44,
@@ -211,9 +202,9 @@ export default function DefectSelection(){
         gap:12,
       }}>
         <Btn
-          t={selected.length>0?`Continue (${selected.length})`:'Continue'}
+          t={selected.length>0?`Save defects (${selected.length})`:'Save (no defects)'}
           kind="gold"
-          icon="arrow-forward"
+          icon="checkmark"
           onPress={handleConfirm}
         />
       </View>

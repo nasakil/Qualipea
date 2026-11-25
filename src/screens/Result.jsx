@@ -17,7 +17,7 @@ const SHORT_VERDICT = {
 };
 
 export default function Result() {
-  const { T, dark, cur, saving, openCam, save, askDiscard, openRecommendations, setZoomImg, anim } = useApp();
+  const { T, dark, cur, saving, openCam, save, askDiscard, openRecommendations, openDefectEditor, setZoomImg, anim } = useApp();
   const heroScale = useRef(new Animated.Value(anim ? 0.92 : 1)).current;
   const heroFade = useRef(new Animated.Value(anim ? 0 : 1)).current;
 
@@ -235,21 +235,40 @@ export default function Result() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Ionicons name="eye-outline" size={16} color={T.g2} />
               <Txt s={14} w="800">AI detected</Txt>
-            </View>
-            <View style={{
-              paddingHorizontal: 9,
-              paddingVertical: 3,
-              borderRadius: 99,
-              backgroundColor: detectedDefects.length ? GC.C + '20' : GC['Extra Class'] + '20',
-            }}>
-              <Text style={{
-                color: detectedDefects.length ? GC.C : GC['Extra Class'],
-                fontFamily: 'OpenRunde-Bold',
-                fontSize: 11.5,
+              <View style={{
+                paddingHorizontal: 8,
+                paddingVertical: 2,
+                borderRadius: 99,
+                backgroundColor: detectedDefects.length ? GC.C + '20' : GC['Extra Class'] + '20',
               }}>
-                {detectedDefects.length ? `${detectedDefects.length} found` : 'Clean'}
-              </Text>
+                <Text style={{
+                  color: detectedDefects.length ? GC.C : GC['Extra Class'],
+                  fontFamily: 'OpenRunde-Bold',
+                  fontSize: 11,
+                }}>
+                  {detectedDefects.length ? `${detectedDefects.length} found` : 'Clean'}
+                </Text>
+              </View>
             </View>
+            <Pressable
+              onPress={() => { sfx('tap'); openDefectEditor(cur, 'res', null, false); }}
+              hitSlop={8}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+                paddingHorizontal: 10,
+                paddingVertical: 5,
+                borderRadius: 99,
+                backgroundColor: dark ? '#1b2b22' : T.bg,
+                borderWidth: 1,
+                borderColor: T.line,
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <Ionicons name="create-outline" size={13} color={T.g2} />
+              <Text style={{ color: T.g2, fontFamily: 'OpenRunde-Bold', fontSize: 12 }}>Edit</Text>
+            </Pressable>
           </View>
 
           {detectedDefects.length > 0 ? (

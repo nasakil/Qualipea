@@ -45,7 +45,7 @@ function ClassIllustration({grade}){
 const STEP_ICONS=['funnel-outline','shield-checkmark-outline','archive-outline'];
 
 export default function Recommendations(){
-  const {T,dark,recScan,saveScanKg,setScr,anim}=useApp();
+  const {T,dark,recScan,saveScanKg,openDefectEditor,setScr,anim}=useApp();
   const [expanded,setExpanded]=useState({});
   const [kgText,setKgText]=useState(recScan?.kg?String(recScan.kg):'');
 
@@ -98,18 +98,22 @@ export default function Recommendations(){
               <Ionicons name="chevron-back" size={24} color="#fff"/>
             </Pressable>
             <Text style={{color:'#fff',fontFamily:'OpenRunde-Bold',fontSize:17}}>Guide &amp; Value</Text>
-            <View style={{
-              paddingHorizontal:10,
-              paddingVertical:6,
-              borderRadius:99,
-              backgroundColor:'rgba(255,255,255,0.14)',
-              flexDirection:'row',
-              alignItems:'center',
-              gap:5,
-            }}>
-              <Ionicons name="sparkles" size={12} color={GOLD}/>
-              <Text style={{color:'#fff',fontFamily:'OpenRunde-Bold',fontSize:11.5}}>AI</Text>
-            </View>
+            <Pressable
+              onPress={()=>{sfx('tap');openDefectEditor(recScan,'recs',recScan.histIdx,recScan.fromHistory)}}
+              style={({pressed})=>({
+                paddingHorizontal:12,
+                paddingVertical:8,
+                borderRadius:12,
+                backgroundColor:'rgba(255,255,255,0.14)',
+                flexDirection:'row',
+                alignItems:'center',
+                gap:5,
+                opacity:pressed?0.75:1,
+              })}
+            >
+              <Ionicons name="create-outline" size={13} color="#fff"/>
+              <Text style={{color:'#fff',fontFamily:'OpenRunde-Bold',fontSize:12.5}}>Edit</Text>
+            </Pressable>
           </View>
 
           <View style={{flexDirection:'row',alignItems:'center',gap:16,marginTop:20}}>
