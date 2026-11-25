@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, Animated, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { GOLD, GC, GS, GRADES, normGrade, pc } from '../theme';
 import { GN, PRICE_CONFIG, defectById } from '../data';
@@ -9,16 +8,36 @@ import { Txt, Btn, Kernel, DefectKernel } from '../components';
 import { useApp } from '../AppContext';
 import { sfx } from '../sound';
 
-const SHORT_VERDICT = {
-  'Extra Class': 'Premium whole kernel',
-  'Class I': 'Good whole kernel',
-  'Class II': 'Minor surface flaws',
-  'Defect': 'Sort out / reject',
+const HERO_THEME = {
+  'Extra Class': {
+    grad: ['#0f3d28', '#175438', '#0c2b1d'],
+    glow: 'rgba(52, 211, 153, 0.18)',
+    verdict: 'Top-grade whole kernel',
+    icon: 'ribbon',
+  },
+  'Class I': {
+    grad: ['#0e3832', '#154f46', '#0b2824'],
+    glow: 'rgba(45, 212, 191, 0.18)',
+    verdict: 'Good whole kernel',
+    icon: 'checkmark-circle',
+  },
+  'Class II': {
+    grad: ['#3a2d0f', '#4f3c13', '#261d0a'],
+    glow: 'rgba(245, 158, 11, 0.20)',
+    verdict: 'Minor surface flaws',
+    icon: 'alert-circle',
+  },
+  'Defect': {
+    grad: ['#3d1616', '#561d1d', '#290f0f'],
+    glow: 'rgba(248, 113, 113, 0.20)',
+    verdict: 'Sort out / reject',
+    icon: 'warning',
+  },
 };
 
 export default function Result() {
   const { T, dark, cur, saving, openCam, save, askDiscard, openRecommendations, openDefectEditor, setZoomImg, anim } = useApp();
-  const heroScale = useRef(new Animated.Value(anim ? 0.92 : 1)).current;
+  const heroScale = useRef(new Animated.Value(anim ? 0.94 : 1)).current;
   const heroFade = useRef(new Animated.Value(anim ? 0 : 1)).current;
 
   useEffect(() => {
@@ -28,10 +47,10 @@ export default function Result() {
       heroFade.setValue(1);
       return;
     }
-    heroScale.setValue(0.92);
+    heroScale.setValue(0.94);
     heroFade.setValue(0);
     Animated.parallel([
-      Animated.spring(heroScale, { toValue: 1, damping: 14, stiffness: 170, useNativeDriver: true }),
+      Animated.spring(heroScale, { toValue: 1, damping: 15, stiffness: 170, useNativeDriver: true }),
       Animated.timing(heroFade, { toValue: 1, duration: 240, useNativeDriver: true }),
     ]).start();
   }, [cur, anim, heroScale, heroFade]);
@@ -39,24 +58,24 @@ export default function Result() {
   if (!cur) return null;
   const g = normGrade(cur.g);
   const c = GC[g];
+  const ht = HERO_THEME[g] || HERO_THEME['Class I'];
   const detectedDefects = (cur.defects || []).map(defectById).filter(Boolean);
-  const r = 24;
-  const circ = 2 * Math.PI * r;
+  const confPct = pc(cur.c);
 
   return (
     <View style={{ flex: 1, backgroundColor: T.bg }}>
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 54, paddingBottom: 126, gap: 14 }}
+        contentContainerStyle={{ paddingHorizontal: 18, paddingTop: 52, paddingBottom: 124, gap: 14 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Minimal Top Bar */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        {/* Minimal Floating Header */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 2 }}>
           <Pressable
             onPress={() => { sfx('tap'); askDiscard(); }}
             style={({ pressed }) => ({
-              width: 42,
-              height: 42,
-              borderRadius: 15,
+              width: 40,
+              height: 40,
+              borderRadius: 14,
               backgroundColor: T.card,
               borderWidth: 1,
               borderColor: T.line,
@@ -65,23 +84,23 @@ export default function Result() {
               transform: [{ scale: pressed && anim ? 0.94 : 1 }],
             })}
           >
-            <Ionicons name="chevron-back" size={22} color={T.ink} />
+            <Ionicons name="chevron-back" size={21} color={T.ink} />
           </Pressable>
 
-          <Txt s={16.5} w="800">Result</Txt>
+          <Txt s={16} w="800">Scan Result</Txt>
 
           <View style={{
             flexDirection: 'row',
             alignItems: 'center',
             gap: 5,
-            paddingHorizontal: 11,
+            paddingHorizontal: 10,
             paddingVertical: 6,
             borderRadius: 99,
-            backgroundColor: cur.rv ? GC.B + '22' : T.g2 + '1e',
+            backgroundColor: cur.rv ? GC.B + '22' : c + '1c',
           }}>
-            <Ionicons name={cur.rv ? 'flag' : 'sparkles'} size={12} color={cur.rv ? GC.B : T.g2} />
+            <Ionicons name={cur.rv ? 'flag' : 'sparkles'} size={12} color={cur.rv ? GC.B : c} />
             <Text style={{
-              color: cur.rv ? GC.B : T.g2,
+              color: cur.rv ? GC.B : c,
               fontFamily: 'OpenRunde-Bold',
               fontSize: 11.5,
             }}>
@@ -90,318 +109,358 @@ export default function Result() {
           </View>
         </View>
 
-        {/* Visual Hero Card */}
+        {/* Grade-Adaptive Editorial Hero Card */}
         <Animated.View style={{ opacity: heroFade, transform: [{ scale: heroScale }] }}>
           <LinearGradient
-            colors={T.hero}
+            colors={ht.grad}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{
-              borderRadius: 30,
-              padding: 18,
+              borderRadius: 32,
+              padding: 20,
               overflow: 'hidden',
-              gap: 16,
+              shadowColor: '#000',
+              shadowOpacity: dark ? 0.35 : 0.16,
+              shadowRadius: 18,
+              shadowOffset: { width: 0, height: 10 },
+              elevation: 6,
             }}
           >
-            {/* Visual Frame (Captured Photo or Peanut SVG) + Floating Confidence Ring */}
-            <View style={{ alignItems: 'center', justifyContent: 'center', minHeight: 164 }}>
-              {cur.img ? (
-                <Pressable
-                  onPress={() => { sfx('tap'); setZoomImg(cur.img); }}
-                  style={{
-                    width: '100%',
-                    height: 176,
-                    borderRadius: 22,
-                    overflow: 'hidden',
-                    backgroundColor: '#121a15',
-                  }}
-                >
-                  <Image source={{ uri: cur.img }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-                  <View style={{
-                    position: 'absolute',
-                    left: 10,
-                    bottom: 10,
-                    backgroundColor: 'rgba(0,0,0,0.58)',
-                    paddingHorizontal: 10,
-                    paddingVertical: 5,
-                    borderRadius: 99,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 5,
-                  }}>
-                    <Ionicons name="expand-outline" size={13} color="#fff" />
-                    <Text style={{ color: '#fff', fontSize: 11, fontFamily: 'OpenRunde-Bold' }}>Zoom</Text>
-                  </View>
-                </Pressable>
-              ) : (
+            {/* Subtle Ambient Top-Right Glow */}
+            <View
+              pointerEvents="none"
+              style={{
+                position: 'absolute',
+                top: -45,
+                right: -35,
+                width: 170,
+                height: 170,
+                borderRadius: 85,
+                backgroundColor: ht.glow,
+              }}
+            />
+
+            {/* Visual Stage: Captured Photo OR Spotlight Peanut */}
+            {cur.img ? (
+              <Pressable
+                onPress={() => { sfx('tap'); setZoomImg(cur.img); }}
+                style={{
+                  width: '100%',
+                  height: 178,
+                  borderRadius: 22,
+                  overflow: 'hidden',
+                  backgroundColor: 'rgba(0,0,0,0.35)',
+                  marginBottom: 16,
+                }}
+              >
+                <Image source={{ uri: cur.img }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
                 <View style={{
-                  width: 138,
-                  height: 138,
-                  borderRadius: 42,
-                  backgroundColor: 'rgba(255,255,255,0.09)',
-                  borderWidth: 1,
-                  borderColor: 'rgba(255,255,255,0.16)',
+                  position: 'absolute',
+                  right: 10,
+                  bottom: 10,
+                  backgroundColor: 'rgba(0,0,0,0.62)',
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  borderRadius: 99,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 5,
+                }}>
+                  <Ionicons name="expand-outline" size={13} color="#fff" />
+                  <Text style={{ color: '#fff', fontSize: 11, fontFamily: 'OpenRunde-Bold' }}>Zoom</Text>
+                </View>
+              </Pressable>
+            ) : (
+              <View style={{ alignItems: 'center', justifyContent: 'center', paddingTop: 6, paddingBottom: 14 }}>
+                <View style={{
+                  width: 146,
+                  height: 146,
+                  borderRadius: 73,
+                  backgroundColor: ht.glow,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}>
-                  <Kernel g={g} size={102} rot={-18} />
+                  <View style={{
+                    width: 118,
+                    height: 118,
+                    borderRadius: 59,
+                    backgroundColor: 'rgba(255,255,255,0.08)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.16)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <Kernel g={g} size={96} rot={-16} />
+                  </View>
                 </View>
-              )}
-
-              {/* Floating Confidence Ring */}
-              <View style={{
-                position: 'absolute',
-                top: cur.img ? 10 : 2,
-                right: cur.img ? 10 : 2,
-                width: 58,
-                height: 58,
-                borderRadius: 29,
-                backgroundColor: 'rgba(10,24,16,0.72)',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <Svg width={58} height={58} style={{ position: 'absolute', transform: [{ rotate: '-90deg' }] }}>
-                  <Circle cx={29} cy={29} r={r} stroke="rgba(255,255,255,0.18)" strokeWidth={4.5} fill="none" />
-                  <Circle
-                    cx={29}
-                    cy={29}
-                    r={r}
-                    stroke={GOLD}
-                    strokeWidth={4.5}
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeDasharray={circ}
-                    strokeDashoffset={circ * (1 - cur.c)}
-                  />
-                </Svg>
-                <Text style={{ color: '#fff', fontFamily: 'OpenRunde-Bold', fontSize: 13.5 }}>{pc(cur.c)}%</Text>
               </View>
+            )}
+
+            {/* Centered Verdict & Grade Pill */}
+            <View style={{ alignItems: 'center', gap: 4 }}>
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                paddingHorizontal: 11,
+                paddingVertical: 4,
+                borderRadius: 99,
+                backgroundColor: c,
+              }}>
+                <Ionicons name={ht.icon} size={13} color="#fff" />
+                <Text style={{ color: '#fff', fontFamily: 'OpenRunde-Bold', fontSize: 11.5, letterSpacing: 0.4 }}>
+                  {GS[g]} · {ht.verdict.toUpperCase()}
+                </Text>
+              </View>
+
+              <Text style={{
+                color: '#fff',
+                fontFamily: 'OpenRunde-Bold',
+                fontSize: 34,
+                letterSpacing: -0.7,
+                marginTop: 4,
+              }}>
+                {GN[g][0]}
+              </Text>
             </View>
 
-            {/* Clean Class Identity Row */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-              <View style={{
-                width: 54,
-                height: 54,
-                borderRadius: 18,
-                backgroundColor: c,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <Text style={{ color: '#fff', fontFamily: 'OpenRunde-Bold', fontSize: 22 }}>{GS[g]}</Text>
+            {/* Integrated Sleek Confidence Meter */}
+            <View style={{
+              marginTop: 16,
+              backgroundColor: 'rgba(0,0,0,0.24)',
+              borderRadius: 16,
+              paddingHorizontal: 14,
+              paddingVertical: 11,
+              gap: 8,
+            }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ color: 'rgba(255,255,255,0.72)', fontFamily: 'OpenRunde-Semibold', fontSize: 12 }}>
+                  AI Confidence
+                </Text>
+                <Text style={{ color: '#fff', fontFamily: 'OpenRunde-Bold', fontSize: 15 }}>
+                  {confPct}%
+                </Text>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: '#fff', fontFamily: 'OpenRunde-Bold', fontSize: 27, letterSpacing: -0.4 }}>
-                  {GN[g][0]}
-                </Text>
-                <Text style={{ color: '#ffffffbd', fontFamily: 'OpenRunde-Medium', fontSize: 13.5, marginTop: 1 }}>
-                  {SHORT_VERDICT[g]}
-                </Text>
+              <View style={{
+                height: 6,
+                borderRadius: 99,
+                backgroundColor: 'rgba(255,255,255,0.14)',
+                overflow: 'hidden',
+              }}>
+                <View style={{
+                  width: `${Math.max(confPct, 4)}%`,
+                  height: '100%',
+                  borderRadius: 99,
+                  backgroundColor: cur.rv ? GOLD : c,
+                }} />
               </View>
             </View>
           </LinearGradient>
         </Animated.View>
 
-        {/* Low-Confidence Alert (Compact 1-liner) */}
+        {/* Low-Confidence Banner (1-liner) */}
         {cur.rv && (
           <View style={{
             flexDirection: 'row',
             alignItems: 'center',
             gap: 10,
-            backgroundColor: GC.B + '22',
+            backgroundColor: GC.B + '1f',
             borderWidth: 1,
             borderColor: GC.B + '44',
             borderRadius: 18,
             paddingHorizontal: 14,
-            paddingVertical: 11,
+            paddingVertical: 10,
           }}>
-            <Ionicons name="alert-circle" size={19} color={GC.B} />
+            <Ionicons name="alert-circle" size={18} color={GC.B} />
             <Txt s={13} w="600" style={{ flex: 1 }}>
-              Low AI confidence — double-check kernel manually.
+              Low confidence — verify kernel manually.
             </Txt>
           </View>
         )}
 
-        {/* AI-Detected Defects Visual Strip (100% AI, Zero Manual Checkboxes) */}
+        {/* Unified AI Insights Card: Detected Anomalies + Segmented Score Distribution */}
         <View style={{
           backgroundColor: T.card,
-          borderRadius: 24,
+          borderRadius: 26,
           borderWidth: 1,
           borderColor: T.line,
-          padding: 15,
-          gap: 11,
+          padding: 16,
+          gap: 16,
         }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Ionicons name="eye-outline" size={16} color={T.g2} />
-              <Txt s={14} w="800">AI detected</Txt>
-              <View style={{
-                paddingHorizontal: 8,
-                paddingVertical: 2,
-                borderRadius: 99,
-                backgroundColor: detectedDefects.length ? GC.C + '20' : GC['Extra Class'] + '20',
-              }}>
-                <Text style={{
-                  color: detectedDefects.length ? GC.C : GC['Extra Class'],
-                  fontFamily: 'OpenRunde-Bold',
-                  fontSize: 11,
+          {/* Part 1: AI Detected Anomalies (Auto-selected + Editable) */}
+          <View style={{ gap: 10 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                <Ionicons name="scan-circle-outline" size={18} color={detectedDefects.length ? c : GC['Extra Class']} />
+                <Txt s={14.5} w="800">AI Anomalies</Txt>
+                <View style={{
+                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                  borderRadius: 99,
+                  backgroundColor: detectedDefects.length ? c + '1f' : GC['Extra Class'] + '1f',
                 }}>
-                  {detectedDefects.length ? `${detectedDefects.length} found` : 'Clean'}
-                </Text>
+                  <Text style={{
+                    color: detectedDefects.length ? c : GC['Extra Class'],
+                    fontFamily: 'OpenRunde-Bold',
+                    fontSize: 11,
+                  }}>
+                    {detectedDefects.length ? `${detectedDefects.length} auto` : 'None'}
+                  </Text>
+                </View>
               </View>
+
+              <Pressable
+                onPress={() => { sfx('tap'); openDefectEditor(cur, 'res', null, false); }}
+                hitSlop={8}
+                style={({ pressed }) => ({
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 4,
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  borderRadius: 99,
+                  backgroundColor: dark ? '#1a2820' : T.bg,
+                  borderWidth: 1,
+                  borderColor: T.line,
+                  opacity: pressed ? 0.7 : 1,
+                })}
+              >
+                <Ionicons name="create-outline" size={13} color={T.g2} />
+                <Text style={{ color: T.g2, fontFamily: 'OpenRunde-Bold', fontSize: 12 }}>Edit</Text>
+              </Pressable>
             </View>
-            <Pressable
-              onPress={() => { sfx('tap'); openDefectEditor(cur, 'res', null, false); }}
-              hitSlop={8}
-              style={({ pressed }) => ({
+
+            {detectedDefects.length > 0 ? (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {detectedDefects.map(d => (
+                  <Pressable
+                    key={d.id}
+                    onPress={() => { sfx('tap'); openDefectEditor(cur, 'res', null, false); }}
+                    style={({ pressed }) => ({
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 8,
+                      paddingVertical: 7,
+                      paddingLeft: 8,
+                      paddingRight: 12,
+                      borderRadius: 15,
+                      backgroundColor: dark ? '#16221c' : T.bg,
+                      borderWidth: 1,
+                      borderColor: d.color + '48',
+                      opacity: pressed ? 0.8 : 1,
+                    })}
+                  >
+                    <DefectKernel id={d.id} size={26} />
+                    <Txt s={13} w="700">{d.name}</Txt>
+                  </Pressable>
+                ))}
+              </View>
+            ) : (
+              <View style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                gap: 4,
-                paddingHorizontal: 10,
-                paddingVertical: 5,
-                borderRadius: 99,
-                backgroundColor: dark ? '#1b2b22' : T.bg,
-                borderWidth: 1,
-                borderColor: T.line,
-                opacity: pressed ? 0.7 : 1,
-              })}
-            >
-              <Ionicons name="create-outline" size={13} color={T.g2} />
-              <Text style={{ color: T.g2, fontFamily: 'OpenRunde-Bold', fontSize: 12 }}>Edit</Text>
-            </Pressable>
+                gap: 8,
+                paddingVertical: 9,
+                paddingHorizontal: 12,
+                borderRadius: 14,
+                backgroundColor: GC['Extra Class'] + '12',
+              }}>
+                <Ionicons name="checkmark-circle" size={17} color={GC['Extra Class']} />
+                <Txt s={13.5} w="600">Clean kernel — no anomalies found</Txt>
+              </View>
+            )}
           </View>
 
-          {detectedDefects.length > 0 ? (
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {detectedDefects.map(d => (
-                <View
-                  key={d.id}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 8,
-                    paddingVertical: 7,
-                    paddingLeft: 8,
-                    paddingRight: 12,
-                    borderRadius: 15,
-                    backgroundColor: dark ? '#16221c' : T.bg,
-                    borderWidth: 1,
-                    borderColor: d.color + '44',
-                  }}
-                >
-                  <DefectKernel id={d.id} size={28} />
-                  <Txt s={13} w="700">{d.name}</Txt>
-                </View>
-              ))}
-            </View>
-          ) : (
+          <View style={{ height: 1, backgroundColor: T.line }} />
+
+          {/* Part 2: Continuous Stacked Class Distribution Bar + Clean 4-Col Legend */}
+          <View style={{ gap: 10 }}>
             <View style={{
               flexDirection: 'row',
-              alignItems: 'center',
-              gap: 9,
-              paddingVertical: 8,
-              paddingHorizontal: 12,
-              borderRadius: 14,
-              backgroundColor: GC['Extra Class'] + '14',
+              height: 10,
+              borderRadius: 99,
+              overflow: 'hidden',
+              backgroundColor: dark ? '#1d2b23' : T.line,
+              gap: 2,
             }}>
-              <Ionicons name="checkmark-circle" size={18} color={GC['Extra Class']} />
-              <Txt s={13.5} w="600" c={T.ink}>No surface defects detected</Txt>
+              {GRADES.map(x => {
+                const v = cur.p?.[x] || 0;
+                if (v <= 0.005) return null;
+                return (
+                  <View
+                    key={x}
+                    style={{
+                      flex: v,
+                      backgroundColor: GC[x],
+                      borderRadius: 99,
+                    }}
+                  />
+                );
+              })}
             </View>
-          )}
+
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              {GRADES.map(x => {
+                const active = x === g;
+                const col = GC[x];
+                return (
+                  <View key={x} style={{ alignItems: 'center', flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: col }} />
+                      <Text style={{
+                        color: active ? col : T.mute,
+                        fontFamily: 'OpenRunde-Bold',
+                        fontSize: 11.5,
+                      }}>
+                        {GS[x]}
+                      </Text>
+                    </View>
+                    <Txt s={14} w={active ? '800' : '600'} c={active ? T.ink : T.mute} style={{ marginTop: 2 }}>
+                      {pc(cur.p?.[x] || 0)}%
+                    </Txt>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
         </View>
 
-        {/* Compact 4-Column Bento Score Strip */}
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          {GRADES.map(x => {
-            const val = cur.p?.[x] || 0;
-            const active = x === g;
-            const col = GC[x];
-            return (
-              <View
-                key={x}
-                style={{
-                  flex: 1,
-                  backgroundColor: active ? col + '18' : T.card,
-                  borderRadius: 20,
-                  borderWidth: active ? 1.5 : 1,
-                  borderColor: active ? col : T.line,
-                  paddingVertical: 11,
-                  paddingHorizontal: 8,
-                  alignItems: 'center',
-                  gap: 6,
-                }}
-              >
-                <Text style={{
-                  color: active ? col : T.mute,
-                  fontFamily: 'OpenRunde-Bold',
-                  fontSize: 11.5,
-                }}>
-                  {GS[x]}
-                </Text>
-                <Txt s={15.5} w="800" c={active ? T.ink : T.mute}>{pc(val)}%</Txt>
-                <View style={{
-                  width: '100%',
-                  height: 5,
-                  borderRadius: 99,
-                  backgroundColor: dark ? '#203028' : T.line,
-                  overflow: 'hidden',
-                }}>
-                  <View style={{
-                    width: `${Math.max(val * 100, val > 0 ? 10 : 0)}%`,
-                    height: '100%',
-                    borderRadius: 99,
-                    backgroundColor: col,
-                  }} />
-                </View>
-              </View>
-            );
-          })}
-        </View>
-
-        {/* Sleek One-Line Guide & Batch Value Tile */}
+        {/* Tinted Interactive CTA: Guide & Batch Value */}
         <Pressable
           onPress={() => { sfx('tap'); openRecommendations(cur, null, false); }}
           style={({ pressed }) => ({
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            backgroundColor: T.card,
+            backgroundColor: dark ? '#15291f' : '#e6f3ec',
             borderRadius: 22,
             borderWidth: 1,
-            borderColor: T.g2 + '55',
-            padding: 15,
+            borderColor: T.g2 + '40',
+            paddingVertical: 14,
+            paddingHorizontal: 16,
             gap: 12,
             transform: [{ scale: pressed && anim ? 0.985 : 1 }],
           })}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
             <View style={{
-              width: 42,
-              height: 42,
-              borderRadius: 14,
-              backgroundColor: T.g2 + '1e',
+              width: 40,
+              height: 40,
+              borderRadius: 13,
+              backgroundColor: T.g2,
               alignItems: 'center',
               justifyContent: 'center',
             }}>
-              <Ionicons name="calculator-outline" size={20} color={T.g2} />
+              <Ionicons name="calculator-outline" size={20} color="#fff" />
             </View>
             <View style={{ flex: 1 }}>
               <Txt s={15} w="800">Guide &amp; Batch Value</Txt>
               <Txt s={12.5} c={T.mute}>
-                ₱{(cur.price ?? PRICE_CONFIG.basePricePerKg).toFixed(0)}/kg · Region XI
+                Fixes &amp; PSA ₱{(cur.price ?? PRICE_CONFIG.basePricePerKg).toFixed(0)}/kg
               </Txt>
             </View>
           </View>
-          <View style={{
-            width: 34,
-            height: 34,
-            borderRadius: 12,
-            backgroundColor: T.g2,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <Ionicons name="arrow-forward" size={17} color="#fff" />
-          </View>
+          <Ionicons name="chevron-forward" size={20} color={T.g2} />
         </Pressable>
       </ScrollView>
 
@@ -414,9 +473,9 @@ export default function Result() {
         backgroundColor: T.bg,
         borderTopWidth: 1,
         borderTopColor: T.line,
-        paddingHorizontal: 20,
-        paddingTop: 14,
-        paddingBottom: 32,
+        paddingHorizontal: 18,
+        paddingTop: 12,
+        paddingBottom: 30,
         flexDirection: 'row',
         gap: 12,
       }}>
