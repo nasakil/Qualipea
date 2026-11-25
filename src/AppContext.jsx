@@ -47,6 +47,8 @@ export function AppProvider({ children }) {
   const [recScan, setRecScan] = useState(null);
   const [zoomImg, setZoomImg] = useState(null);
   const [demoSim, setDemoSim] = useState('auto');
+  const [seenOnb, setSeenOnb] = useState(false);
+  const [skipPrep, setSkipPrep] = useState(false);
 
   const hist = demo ? hd : hr;
   const setHist = demo ? setHd : setHr;
@@ -66,6 +68,8 @@ export function AppProvider({ children }) {
           if (typeof saved.anim === 'boolean') setAnim(saved.anim);
           if (typeof saved.snd === 'boolean') { setSnd(saved.snd); setSfx(saved.snd) }
           if (typeof saved.demo === 'boolean') setDemo(saved.demo);
+          if (typeof saved.seenOnb === 'boolean') setSeenOnb(saved.seenOnb);
+          if (typeof saved.skipPrep === 'boolean') setSkipPrep(saved.skipPrep);
           if (typeof saved.piUrl === 'string' && saved.piUrl.trim()) setPiUrl(saved.piUrl);
           if (Array.isArray(saved.hr)) {
             setHr(saved.hr.map(item => ({
@@ -84,8 +88,8 @@ export function AppProvider({ children }) {
 
   useEffect(() => {
     if (!hydrated.current) return;
-    AsyncStorage.setItem(STORE_KEY, JSON.stringify({ dark, anim, snd, demo, piUrl, hr })).catch(() => { });
-  }, [dark, anim, snd, demo, piUrl, hr]);
+    AsyncStorage.setItem(STORE_KEY, JSON.stringify({ dark, anim, snd, demo, seenOnb, skipPrep, piUrl, hr })).catch(() => { });
+  }, [dark, anim, snd, demo, seenOnb, skipPrep, piUrl, hr]);
 
   const setScr = (next, dir = 0) => {
     setNavDir(dir);
@@ -206,8 +210,17 @@ export function AppProvider({ children }) {
     }, 450);
   };
 
-  const startScan = () => !demo ? setScr('prep', 1) : (dev === 1 ? setScr('prep', 1) : connect(() => setScr('prep', 1)));
+  const completeOnboarding = () => {
+    setSeenOnb(true);
+    setScr('home', 1);
+  };
+
   const openCam = () => { setCap(false); setPhoto(null); setScr('cam', 1) };
+  const startScan = () => {
+    const goNext = () => (skipPrep ? openCam() : setScr('prep', 1));
+    if (!demo) return goNext();
+    return dev === 1 ? goNext() : connect(goNext);
+  };
 
   const makeFallbackResult = (img, preset = 'auto') => {
     if (preset === 'low') {
@@ -546,7 +559,7 @@ export function AppProvider({ children }) {
     }
     const iv = setInterval(() => {
       i++;
-      if (i >= 5) {
+      if (i >= 4) {
         clearInterval(iv);
         setDg(-1);
         toast(piReachable ? 'Diagnostics passed' : 'Pi 5 chamber is offline');
@@ -559,6 +572,7 @@ export function AppProvider({ children }) {
   const value = {
     snd, toggleSnd, anim, toggleAnim,
     piUrl, setPiUrl, recScan, setRecScan, zoomImg, setZoomImg, demoSim, setDemoSim,
+    seenOnb, setSeenOnb, skipPrep, setSkipPrep, completeOnboarding,
     openRecommendations, saveScanDefects, saveScanKg, confirmDelete,
     sys, dark, setDark, T,
     scr, setScr, goTab, navDir,

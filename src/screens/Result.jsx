@@ -1,16 +1,16 @@
 import React,{useEffect,useRef} from 'react';
-import {View,Text,Pressable,ScrollView,Animated,Image,ActivityIndicator} from 'react-native';
+import {View,Text,Pressable,ScrollView,Animated,Image} from 'react-native';
 import {LinearGradient} from 'expo-linear-gradient';
 import Svg,{Circle} from 'react-native-svg';
 import {Ionicons} from '@expo/vector-icons';
 import {GOLD,GC,GS,GRADES,normGrade,pc} from '../theme';
-import {GN,ADV,PRICE_CONFIG,buildWhySummary} from '../data';
+import {GN,PRICE_CONFIG,buildWhySummary} from '../data';
 import {Card,Txt,Btn,Bar} from '../components';
 import {useApp} from '../AppContext';
 import {sfx} from '../sound';
 
 export default function Result(){
-  const {T,cur,tab,setTab,pd,saving,openCam,save,askDiscard,openRecommendations,setZoomImg,anim}=useApp();
+  const {T,cur,saving,openCam,save,askDiscard,openRecommendations,setZoomImg,anim}=useApp();
   const badgeScale=useRef(new Animated.Value(anim?0.72:1)).current;
 
   useEffect(()=>{
@@ -146,28 +146,6 @@ export default function Result(){
                 <Txt s={13.5} c={T.mute} style={{flex:1,lineHeight:19}}>{f}</Txt>
               </View>
             ))}
-            <Pressable
-              onPress={()=>{sfx('tap');openRecommendations(cur,null,false)}}
-              style={({pressed})=>({
-                marginTop:14,
-                paddingVertical:12,
-                paddingHorizontal:14,
-                borderRadius:15,
-                backgroundColor:T.g2+'22',
-                borderWidth:1,
-                borderColor:T.g2+'44',
-                flexDirection:'row',
-                alignItems:'center',
-                justifyContent:'space-between',
-                opacity:pressed?0.8:1,
-              })}
-            >
-              <View style={{flexDirection:'row',alignItems:'center',gap:9}}>
-                <Ionicons name="medkit-outline" size={18} color={T.g2}/>
-                <Txt s={14} w="700" c={T.g2}>Inspect defects &amp; batch calculator</Txt>
-              </View>
-              <Ionicons name="arrow-forward" size={17} color={T.g2}/>
-            </Pressable>
           </Card>
 
           <Card style={{borderWidth:1,borderColor:T.line}}>
@@ -181,65 +159,67 @@ export default function Result(){
             ))}
           </Card>
 
-          <View style={{flexDirection:'row',backgroundColor:T.line,borderRadius:16,padding:4}}>
-            {[['p','Price'],['a','Advice']].map(([k,l])=>(
-              <Pressable
-                key={k}
-                onPress={()=>{sfx('tap');setTab(k)}}
-                style={{
-                  flex:1,
-                  height:40,
-                  borderRadius:12,
+          {/* Streamlined CTA to Recommendations & Batch Calculator */}
+          <Pressable
+            onPress={()=>{sfx('tap');openRecommendations(cur,null,false)}}
+            style={({pressed})=>({
+              backgroundColor:T.card,
+              borderRadius:24,
+              borderWidth:1.5,
+              borderColor:T.g2+'55',
+              padding:18,
+              gap:12,
+              transform:[{scale:pressed&&anim?0.985:1}],
+            })}
+          >
+            <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:12}}>
+              <View style={{flexDirection:'row',alignItems:'center',gap:12,flex:1}}>
+                <View style={{
+                  width:44,
+                  height:44,
+                  borderRadius:15,
+                  backgroundColor:T.g2+'22',
                   alignItems:'center',
                   justifyContent:'center',
-                  backgroundColor:tab===k?T.card:'transparent',
-                }}
-              >
-                <Txt w="700" c={tab===k?T.ink:T.mute}>{l}</Txt>
-              </Pressable>
-            ))}
-          </View>
-
-          {tab==='p'?(
-            !pd?(
-              <Card style={{alignItems:'center',gap:10,padding:30,borderWidth:1,borderColor:T.line}}>
-                <ActivityIndicator color={T.g2}/>
-                <Txt c={T.mute}>Fetching reference price…</Txt>
-              </Card>
-            ):(
-              <Card style={{borderWidth:1,borderColor:T.line}}>
-                <Txt s={13.5} c={T.mute}>
-                  {cur.price?'Live reference price from Pi 5':`${PRICE_CONFIG.sourceName} · ${PRICE_CONFIG.location}`}
-                </Txt>
-                <Txt s={38} w="800">
-                  ₱{(cur.price??PRICE_CONFIG.basePricePerKg).toFixed(2)} <Txt s={16} c={T.mute}>per kg</Txt>
-                </Txt>
-                {[
-                  ['Commodity',PRICE_CONFIG.commodity],
-                  ['Source',cur.priceSource||(cur.fromPi?'Raspberry Pi 5 API':PRICE_CONFIG.sourceName)],
-                  ['Reference',PRICE_CONFIG.referencePeriod],
-                  ['Model',cur.model||'yolo11n-cls 1.0.0'],
-                ].map(([a,b])=>(
-                  <View key={a} style={{flexDirection:'row',justifyContent:'space-between',paddingVertical:10}}>
-                    <Txt c={T.mute} s={14}>{a}</Txt>
-                    <Txt s={14}>{b}</Txt>
-                  </View>
-                ))}
-                <Txt s={12.5} c={T.mute}>A reference farmgate price isn’t a {g} buyer offer until experts approve adjustments.</Txt>
-              </Card>
-            )
-          ):(
-            <Card style={{borderWidth:1,borderColor:T.line}}>
-              <Txt w="700">{cur.rv?'Verify with an expert first':GN[g][1]}</Txt>
-              {ADV[g].map(a=>(
-                <View key={a} style={{flexDirection:'row',gap:10,paddingVertical:9}}>
-                  <Ionicons name="checkmark" size={20} color={GC.A}/>
-                  <Txt style={{flex:1}}>{a}</Txt>
+                }}>
+                  <Ionicons name="medkit-outline" size={22} color={T.g2}/>
                 </View>
-              ))}
-              <Txt s={12.5} c={T.mute}>Proposed advice, pending expert validation.</Txt>
-            </Card>
-          )}
+                <View style={{flex:1}}>
+                  <Txt s={16} w="800">Guide, defect fixes &amp; calculator</Txt>
+                  <Txt s={13} c={T.mute} style={{marginTop:2}}>
+                    Sorting advice, defect breakdown &amp; batch value
+                  </Txt>
+                </View>
+              </View>
+              <View style={{
+                width:34,
+                height:34,
+                borderRadius:12,
+                backgroundColor:T.g2,
+                alignItems:'center',
+                justifyContent:'center',
+              }}>
+                <Ionicons name="arrow-forward" size={18} color="#fff"/>
+              </View>
+            </View>
+            <View style={{
+              flexDirection:'row',
+              alignItems:'center',
+              justifyContent:'space-between',
+              paddingTop:10,
+              borderTopWidth:1,
+              borderTopColor:T.line,
+            }}>
+              <View style={{flexDirection:'row',alignItems:'center',gap:6}}>
+                <Ionicons name="pricetag-outline" size={14} color={GOLD}/>
+                <Txt s={12.5} w="700" c={T.ink}>
+                  ₱{(cur.price??PRICE_CONFIG.basePricePerKg).toFixed(2)}/kg
+                </Txt>
+                <Txt s={12} c={T.mute}>· {PRICE_CONFIG.location}</Txt>
+              </View>
+              <Txt s={12} c={T.mute}>{cur.model||'yolo11n-cls'}</Txt>
+            </View>
+          </Pressable>
         </View>
       </ScrollView>
 

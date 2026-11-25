@@ -26,7 +26,7 @@ function Sparkle({size=28,color='#ffffff'}){
 }
 
 export default function Onboarding(){
-  const {dark,T,setScr,oi,setOi,ob,anim}=useApp();
+  const {dark,T,completeOnboarding,oi,setOi,ob,anim}=useApp();
   const [pageW,setPageW]=useState(W);
   const [pageH,setPageH]=useState(0);
   const floatY=useRef(new Animated.Value(0)).current;
@@ -174,7 +174,7 @@ export default function Onboarding(){
 
         {oi<3&&(
           <Pressable
-            onPress={()=>{sfx('tap');setScr('home',1)}}
+            onPress={()=>{sfx('tap');completeOnboarding()}}
             style={({pressed})=>({
               position:'absolute',
               right:20,
@@ -294,7 +294,7 @@ export default function Onboarding(){
           onPress={()=>{
             sfx('tap');
             if(oi>=OB.length-1){
-              setScr('home',1);
+              completeOnboarding();
             }else{
               const next=oi+1;
               setOi(next);

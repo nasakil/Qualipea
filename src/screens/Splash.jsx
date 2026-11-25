@@ -13,7 +13,7 @@ const KNOB_S=60;
 const MAX_PULL=TRACK_H-KNOB_S-22;
 
 export default function Splash(){
-  const {anim,setScr}=useApp();
+  const {anim,setScr,seenOnb}=useApp();
   const fade=useRef(new Animated.Value(anim?0:1)).current;
   const heroJump=useRef(new Animated.Value(anim?22:0)).current;
   const arrowBounce=useRef(new Animated.Value(0)).current;
@@ -22,14 +22,17 @@ export default function Splash(){
   const screenY=useRef(new Animated.Value(0)).current;
   const exiting=useRef(false);
   const animRef=useRef(anim);
+  const seenRef=useRef(seenOnb);
   animRef.current=anim;
+  seenRef.current=seenOnb;
 
   const enterApp=()=>{
     if(exiting.current)return;
     exiting.current=true;
     sfx('nav');
+    const nextScreen=seenRef.current?'home':'onb';
     if(!animRef.current){
-      setScr('onb',1);
+      setScr(nextScreen,1);
       return;
     }
     Animated.parallel([
@@ -50,7 +53,7 @@ export default function Splash(){
         duration:220,
         useNativeDriver:true,
       }),
-    ]).start(()=>setScr('onb',1));
+    ]).start(()=>setScr(nextScreen,1));
   };
 
   useEffect(()=>{

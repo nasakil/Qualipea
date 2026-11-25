@@ -7,9 +7,11 @@ import {useApp} from '../AppContext';
 import {sfx} from '../sound';
 
 export default function Row({h,i}){
-  const {T,detail,anim}=useApp();
+  const {T,hist,detail,anim}=useApp();
   const g=normGrade(h.g);
   const badgeKey=h.x?normGrade(h.x):g;
+  const scanNum=String(Math.max(1,(hist?.length||1)-i)).padStart(2,'0');
+  const defectCount=Array.isArray(h.defects)?h.defects.length:0;
   return (
     <Pressable
       onPress={()=>{sfx('tap');detail(i)}}
@@ -67,11 +69,16 @@ export default function Row({h,i}){
         </View>
       </View>
       <View style={{flex:1}}>
-        <Txt s={16} w="700">{GN[g][0]}{h.x?' → '+h.x:''}</Txt>
+        <View style={{flexDirection:'row',alignItems:'center',gap:6}}>
+          <Txt s={16} w="700">{GN[g][0]}{h.x?' → '+h.x:''}</Txt>
+          <Txt s={11.5} w="700" c={T.mute}>#{scanNum}</Txt>
+        </View>
         <Txt s={12.5} c={T.mute}>{GN[g][1]}</Txt>
-        <View style={{flexDirection:'row',gap:8,marginTop:6,alignItems:'center'}}>
+        <View style={{flexDirection:'row',flexWrap:'wrap',gap:6,marginTop:6,alignItems:'center'}}>
           <Txt s={12} c={T.mute}>{h.tm}</Txt>
           {h.r?<Chip t="Review" c={GC.B}/>:<Chip t="Confident" c={GC.A}/>}
+          {defectCount>0&&<Chip t={`${defectCount} ${defectCount===1?'defect':'defects'}`} c={GC.C}/>}
+          {!!h.kg&&<Chip t={`${h.kg} kg`} c={T.g2}/>}
         </View>
       </View>
       <Ring v={h.c} c={GC[g]}/>

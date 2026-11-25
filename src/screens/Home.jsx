@@ -174,7 +174,7 @@ export default function Home(){
           >
             <Text style={{color:'#fff',fontSize:26,fontFamily:'OpenRunde-Bold',maxWidth:175}}>Start a new scan</Text>
             <Text style={{color:'#ffffffb8',fontFamily:'OpenRunde-Regular',marginVertical:9,maxWidth:195,lineHeight:20}}>
-              One kernel per scan, lid closed, LED on.
+              {demo?'One kernel per scan, lid closed, LED on.':'Stream live from RPi Cam or switch to Phone Cam.'}
             </Text>
             <View style={{
               flexDirection:'row',
@@ -282,7 +282,36 @@ export default function Home(){
           )}
         </View>
         {hist.slice(0,3).map((h,i)=><Row key={i} h={h} i={i}/>)}
-        {!hist.length&&<Txt c={T.mute}>No scans yet.</Txt>}
+        {!hist.length&&(
+          <Pressable
+            onPress={()=>{sfx('tap');startScan()}}
+            style={({pressed})=>({
+              backgroundColor:T.card,
+              borderRadius:24,
+              borderWidth:1,
+              borderColor:T.line,
+              padding:22,
+              alignItems:'center',
+              gap:8,
+              transform:[{scale:pressed&&anim?0.985:1}],
+            })}
+          >
+            <View style={{
+              width:48,
+              height:48,
+              borderRadius:16,
+              backgroundColor:T.g2+'1e',
+              alignItems:'center',
+              justifyContent:'center',
+            }}>
+              <Ionicons name="scan-outline" size={24} color={T.g2}/>
+            </View>
+            <Txt s={16} w="800">No scans yet</Txt>
+            <Txt s={13} c={T.mute} style={{textAlign:'center',lineHeight:19}}>
+              Tap here to grade your first Spanish peanut kernel.
+            </Txt>
+          </Pressable>
+        )}
       </ScrollView>
     </View>
   );

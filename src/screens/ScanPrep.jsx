@@ -19,7 +19,7 @@ const CAMERA_STEPS = [
 ];
 
 export default function ScanPrep() {
-  const { T, demo, setScr, openCam, anim } = useApp();
+  const { T, demo, setScr, openCam, anim, skipPrep, setSkipPrep } = useApp();
   const steps = demo ? CHAMBER_STEPS : CAMERA_STEPS;
   const fade = useRef(new Animated.Value(anim ? 0 : 1)).current;
   const slide = useRef(new Animated.Value(anim ? 14 : 0)).current;
@@ -104,6 +104,34 @@ export default function ScanPrep() {
       </Animated.View>
 
       <View style={{ flex: 1 }} />
+      <Pressable
+        onPress={() => { sfx('tap'); setSkipPrep(!skipPrep); }}
+        style={({ pressed }) => ({
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 10,
+          alignSelf: 'center',
+          paddingHorizontal: 14,
+          paddingVertical: 10,
+          marginBottom: 12,
+          borderRadius: 14,
+          opacity: pressed ? 0.75 : 1,
+        })}
+      >
+        <View style={{
+          width: 22,
+          height: 22,
+          borderRadius: 7,
+          borderWidth: 1.5,
+          borderColor: skipPrep ? T.g2 : T.mute,
+          backgroundColor: skipPrep ? T.g2 : 'transparent',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          {skipPrep && <Ionicons name="checkmark" size={14} color="#fff" />}
+        </View>
+        <Txt s={14} w="600" c={T.mute}>Skip prep next time</Txt>
+      </Pressable>
       <View style={{ flexDirection: 'row' }}>
         <Btn t="Open camera" icon="camera-outline" kind={demo ? undefined : 'gold'} onPress={openCam} />
       </View>
