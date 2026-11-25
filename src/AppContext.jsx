@@ -5,7 +5,7 @@ import { GR, GC, GRADES, normGrade, pc, LT, DK, Th, AnimCtx } from './theme';
 import { GN, SEED, buildWhySummary, suggestDefects } from './data';
 import { Kernel, Card, Txt } from './components';
 import { sfx, setSfx, initAudio } from './sound';
-import { DEFAULT_PI_URL, normalizeUrl, checkPiHealth, classifyKernel } from './api';
+import { DEFAULT_PI_URL, normalizeUrl, checkPiHealth, scanFromPi, classifyKernel } from './api';
 
 const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
@@ -239,12 +239,12 @@ export function AppProvider({ children }) {
     return { ...base, defects: suggestDefects(base), autoDefects: true, defectsConfirmed: false };
   };
 
-  const analyze = async () => {
+  const analyze = async (source = 'pi') => {
     setPs(0);
     setScr('proc', 1);
 
-    if (demo || !photo) {
-      const nextCur = makeFallbackResult(null, demo ? demoSim : 'auto');
+    if (demo) {
+      const nextCur = makeFallbackResult(null, demoSim);
       setCur(nextCur);
       [1, 2, 3, 4].forEach(i => setTimeout(() => { setPs(i); sfx('step', i - 1) }, i * 650));
       setTimeout(() => {
@@ -258,12 +258,14 @@ export function AppProvider({ children }) {
       return;
     }
 
-    // Real mode with captured photo: send to Raspberry Pi 5 server
+    // Real mode: trigger GET /scan on Raspberry Pi 5 (default RPi Cam) or POST /predict (Phone fallback)
     setPs(1);
     sfx('step', 0);
     setTimeout(() => { setPs(2); sfx('step', 1) }, 450);
 
-    const piRes = await classifyKernel(piUrl, photo);
+    const piRes = (source === 'phone' && photo)
+      ? await classifyKernel(piUrl, photo)
+      : await scanFromPi(piUrl);
     setPs(3);
     sfx('step', 2);
 
@@ -272,14 +274,14 @@ export function AppProvider({ children }) {
       setDev(1);
       finalCur = {
         ...piRes.result,
-        img: photo,
+        img: piRes.result.img || photo || null,
         defects: suggestDefects(piRes.result),
         autoDefects: true,
         defectsConfirmed: false,
       };
     } else {
-      finalCur = makeFallbackResult(photo);
-      toast('Pi offline · using local estimate');
+      finalCur = makeFallbackResult(photo || null);
+      toast(piRes.error || 'Pi 5 server offline · using local estimate');
     }
 
     setCur(finalCur);

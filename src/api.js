@@ -8,6 +8,14 @@ export function normalizeUrl(raw){
   return /^https?:\/\//i.test(trimmed)?trimmed:`http://${trimmed}`;
 }
 
+export function piVideoUrl(baseUrl,nonce=Date.now()){
+  return `${normalizeUrl(baseUrl)}/video?t=${nonce}`;
+}
+
+export function piResultUrl(baseUrl,nonce=Date.now()){
+  return `${normalizeUrl(baseUrl)}/result?t=${nonce}`;
+}
+
 async function fetchWithTimeout(url,options={},timeoutMs=4500){
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),timeoutMs);
@@ -32,9 +40,11 @@ export async function checkPiHealth(baseUrl){
         try{data=await res.json()}catch(_){}
         return {ok:true,url:base,endpoint:p,data};
       }
-      if(res.status!==404){
-        lastError=`HTTP ${res.status}`;
+      // A 404/405 still proves Flask is listening on host:port even if /health isn't defined
+      if(res.status===404||res.status===405){
+        return {ok:true,url:base,endpoint:p,data:null};
       }
+      lastError=`HTTP ${res.status}`;
     }catch(err){
       lastError=err?.name==='AbortError'?'Connection timed out':(err?.message||'Network error');
     }
@@ -78,6 +88,82 @@ function normalizeProbabilities(data,g,c){
   };
 }
 
+function parsePredictionPayload(data,base,fallbackImg=null){
+  const rawGrade=data.grade??data.class??data.label??data.prediction;
+  const g=normGrade(rawGrade);
+  let c=Number(data.confidence??data.score??data.probability??0.88);
+  if(Number.isNaN(c))c=0.88;
+  if(c>1)c=c/100;
+  c=Math.max(0,Math.min(1,c));
+
+  const img=data.image_url
+    ? (/^https?:\/\//i.test(data.image_url)?data.image_url:`${base}${data.image_url.startsWith('/')?'':'/'}${data.image_url}`)
+    : (fallbackImg||piResultUrl(base));
+
+  return {
+    g,
+    c,
+    rv:c<0.75,
+    img,
+    p:normalizeProbabilities(data,g,c),
+    model:data.model||'yolo11n-cls 1.0.0',
+    price:typeof (data.price??data.reference_price)==='number'?(data.price??data.reference_price):null,
+    priceSource:data.price_source||data.source||null,
+    reason:data.reason||data.explanation||null,
+    defects:Array.isArray(data.defects)?data.defects:undefined,
+    defectRate:typeof data.defect_rate==='number'?data.defect_rate:null,
+    total:typeof data.total==='number'?data.total:null,
+    normal:typeof data.normal==='number'?data.normal:null,
+    defect:typeof data.defect==='number'?data.defect:null,
+    inferenceTime:typeof data.inference_time==='number'?data.inference_time:null,
+    fromPi:true,
+  };
+}
+
+/**
+ * Primary RPi Camera flow: triggers GET /scan on the Raspberry Pi 5 Flask server.
+ * The Pi captures from its Camera Module 3, runs YOLO11-cls, saves /result, and returns JSON.
+ */
+export async function scanFromPi(baseUrl){
+  const base=normalizeUrl(baseUrl);
+  const endpoints=[
+    {path:'/scan',method:'GET'},
+    {path:'/scan',method:'POST'},
+    {path:'/capture',method:'GET'},
+  ];
+  let lastError=null;
+
+  for(const ep of endpoints){
+    try{
+      const res=await fetchWithTimeout(
+        `${base}${ep.path}`,
+        {method:ep.method,headers:{Accept:'application/json'}},
+        30000
+      );
+      if(res.status===404||res.status===405)continue;
+      if(!res.ok){
+        lastError=`HTTP ${res.status}`;
+        continue;
+      }
+      const data=await res.json();
+      if(data&&data.success===false){
+        return {ok:false,error:data.error||'Pi reported scan failed'};
+      }
+      return {
+        ok:true,
+        result:parsePredictionPayload(data,base,piResultUrl(base)),
+      };
+    }catch(err){
+      lastError=err?.name==='AbortError'?'Pi scan timed out':(err?.message||'Cannot reach Pi 5');
+    }
+  }
+
+  return {ok:false,error:lastError||'Could not trigger /scan on Pi 5'};
+}
+
+/**
+ * Phone-camera fallback: uploads a captured phone photo via POST /predict.
+ */
 export async function classifyKernel(baseUrl,imageUri){
   const base=normalizeUrl(baseUrl);
   const endpoints=['/predict','/classify','/grade'];
@@ -86,59 +172,25 @@ export async function classifyKernel(baseUrl,imageUri){
   for(const ep of endpoints){
     try{
       const form=new FormData();
-      form.append('file',{
-        uri:imageUri,
-        name:'kernel.jpg',
-        type:'image/jpeg',
-      });
-      form.append('image',{
-        uri:imageUri,
-        name:'kernel.jpg',
-        type:'image/jpeg',
-      });
+      form.append('file',{uri:imageUri,name:'kernel.jpg',type:'image/jpeg'});
+      form.append('image',{uri:imageUri,name:'kernel.jpg',type:'image/jpeg'});
 
       const res=await fetchWithTimeout(
         `${base}${ep}`,
-        {
-          method:'POST',
-          body:form,
-          headers:{Accept:'application/json'},
-        },
-        12000
+        {method:'POST',body:form,headers:{Accept:'application/json'}},
+        15000
       );
 
-      if(res.status===404)continue;
+      if(res.status===404||res.status===405)continue;
       if(!res.ok){
         lastError=`HTTP ${res.status}`;
         continue;
       }
 
       const data=await res.json();
-      const rawGrade=data.grade??data.class??data.label??data.prediction;
-      const g=normGrade(rawGrade);
-      let c=Number(data.confidence??data.score??data.probability??0.85);
-      if(Number.isNaN(c))c=0.85;
-      if(c>1)c=c/100;
-      c=Math.max(0,Math.min(1,c));
-
       return {
         ok:true,
-        result:{
-          g,
-          c,
-          rv:c<0.75,
-          p:normalizeProbabilities(data,g,c),
-          model:data.model||'yolo11n-cls 1.0.0',
-          price:typeof (data.price??data.reference_price)==='number'?(data.price??data.reference_price):null,
-          priceSource:data.price_source||data.source||null,
-          reason:data.reason||data.explanation||null,
-          defectRate:typeof data.defect_rate==='number'?data.defect_rate:null,
-          total:typeof data.total==='number'?data.total:null,
-          normal:typeof data.normal==='number'?data.normal:null,
-          defect:typeof data.defect==='number'?data.defect:null,
-          inferenceTime:typeof data.inference_time==='number'?data.inference_time:null,
-          fromPi:true,
-        },
+        result:parsePredictionPayload(data,base,imageUri),
       };
     }catch(err){
       lastError=err?.name==='AbortError'?'Inference timed out':(err?.message||'Upload failed');
