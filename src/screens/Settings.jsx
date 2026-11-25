@@ -91,7 +91,6 @@ export default function Settings() {
     ['camera-outline', 'Camera Module 3', on, on ? 'Ready, 12 MP' : 'Unavailable until the Pi connects'],
     ['sunny-outline', 'LED ring', on, on ? 'On, lighting is even' : 'Off'],
     ['cube-outline', 'Grading model', on, on ? 'yolo11n-cls 1.0.0 loaded, 4 classes (Extra Class, Class I, Class II, Defect)' : 'Can’t check until the Pi connects'],
-    ['pricetag-outline', 'Pricing API', demo, demo ? 'Demo provider, sample data' : 'Not configured'],
     ['cloud-done-outline', 'Cloud sync', demo, demo ? 'Synced just now' : 'Sign in to sync'],
   ];
   const ok = R.filter(r => r[2]).length;
@@ -131,9 +130,9 @@ export default function Settings() {
       <Card style={{ borderWidth: 1, borderColor: T.line }}>
         <Txt s={13.5} c={T.mute}>System status</Txt>
         <Txt s={23} w="800" style={{ marginTop: 2 }}>
-          {dev === 2 ? 'Connecting…' : ok === 6 ? 'All systems ready' : on ? 'Some checks pending' : 'Chamber offline'}
+          {dev === 2 ? 'Connecting…' : ok === R.length ? 'All systems ready' : on ? 'Some checks pending' : 'Chamber offline'}
         </Txt>
-        <Txt s={13.5} c={T.mute} style={{ marginBottom: 8 }}>{ok} of 6 checks passing</Txt>
+        <Txt s={13.5} c={T.mute} style={{ marginBottom: 8 }}>{ok} of {R.length} checks passing</Txt>
         {R.map(([ic, t, o, s], i) => (
           <View key={t} style={{ flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 10 }}>
             <View style={{

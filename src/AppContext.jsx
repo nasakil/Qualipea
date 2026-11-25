@@ -546,7 +546,7 @@ export function AppProvider({ children }) {
     }
     const iv = setInterval(() => {
       i++;
-      if (i >= 6) {
+      if (i >= 5) {
         clearInterval(iv);
         setDg(-1);
         toast(piReachable ? 'Diagnostics passed' : 'Pi 5 chamber is offline');
