@@ -228,13 +228,31 @@ export function AppProvider({ children }) {
   };
 
   const makeFallbackResult = (img, preset = 'auto') => {
+    const buildDemoCounts = (probs, total = 24) => {
+      const counts = {};
+      let sum = 0;
+      GRADES.forEach((k, idx) => {
+        if (idx === GRADES.length - 1) {
+          counts[k] = Math.max(0, total - sum);
+        } else {
+          const n = Math.round((probs[k] || 0) * total);
+          counts[k] = n;
+          sum += n;
+        }
+      });
+      return counts;
+    };
     if (preset === 'low') {
+      const p = { 'Extra Class': 0.04, 'Class I': 0.10, 'Class II': 0.66, 'Defect': 0.20 };
+      const total = 18;
       const base = {
         g: 'Class II',
         c: 0.66,
         rv: true,
         img: img || null,
-        p: { 'Extra Class': 0.04, 'Class I': 0.10, 'Class II': 0.66, 'Defect': 0.20 },
+        p,
+        total,
+        counts: buildDemoCounts(p, total),
       };
       return { ...base, defects: suggestDefects(base), autoDefects: true, defectsConfirmed: false };
     }
@@ -247,12 +265,16 @@ export function AppProvider({ children }) {
     const w1 = 0.55;
     const w2 = 0.30;
     const w3 = 0.15;
+    const p = { [g]: c, [o[0]]: rem * w1, [o[1]]: rem * w2, [o[2]]: rem * w3 };
+    const total = preset === 'Extra Class' ? 24 : preset === 'Class I' ? 22 : preset === 'Class II' ? 20 : preset === 'Defect' ? 16 : 20;
     const base = {
       g,
       c,
       rv: c < .75,
       img: img || null,
-      p: { [g]: c, [o[0]]: rem * w1, [o[1]]: rem * w2, [o[2]]: rem * w3 },
+      p,
+      total,
+      counts: buildDemoCounts(p, total),
     };
     return { ...base, defects: suggestDefects(base), autoDefects: true, defectsConfirmed: false };
   };
