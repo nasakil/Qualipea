@@ -47,6 +47,8 @@ export function AppProvider({ children }) {
   const [recScan, setRecScan] = useState(null);
   const [zoomImg, setZoomImg] = useState(null);
   const [demoSim, setDemoSim] = useState('auto');
+  const [seenOnb, setSeenOnb] = useState(false);
+  const [skipPrep, setSkipPrep] = useState(false);
 
   const hist = demo ? hd : hr;
   const setHist = demo ? setHd : setHr;
@@ -66,6 +68,8 @@ export function AppProvider({ children }) {
           if (typeof saved.anim === 'boolean') setAnim(saved.anim);
           if (typeof saved.snd === 'boolean') { setSnd(saved.snd); setSfx(saved.snd) }
           if (typeof saved.demo === 'boolean') setDemo(saved.demo);
+          if (typeof saved.seenOnb === 'boolean') setSeenOnb(saved.seenOnb);
+          if (typeof saved.skipPrep === 'boolean') setSkipPrep(saved.skipPrep);
           if (typeof saved.piUrl === 'string' && saved.piUrl.trim()) setPiUrl(saved.piUrl);
           if (Array.isArray(saved.hr)) {
             setHr(saved.hr.map(item => ({
@@ -84,8 +88,8 @@ export function AppProvider({ children }) {
 
   useEffect(() => {
     if (!hydrated.current) return;
-    AsyncStorage.setItem(STORE_KEY, JSON.stringify({ dark, anim, snd, demo, piUrl, hr })).catch(() => { });
-  }, [dark, anim, snd, demo, piUrl, hr]);
+    AsyncStorage.setItem(STORE_KEY, JSON.stringify({ dark, anim, snd, demo, seenOnb, skipPrep, piUrl, hr })).catch(() => { });
+  }, [dark, anim, snd, demo, seenOnb, skipPrep, piUrl, hr]);
 
   const setScr = (next, dir = 0) => {
     setNavDir(dir);
@@ -206,8 +210,17 @@ export function AppProvider({ children }) {
     }, 450);
   };
 
-  const startScan = () => !demo ? setScr('prep', 1) : (dev === 1 ? setScr('prep', 1) : connect(() => setScr('prep', 1)));
+  const completeOnboarding = () => {
+    setSeenOnb(true);
+    setScr('home', 1);
+  };
+
   const openCam = () => { setCap(false); setPhoto(null); setScr('cam', 1) };
+  const startScan = () => {
+    const goNext = () => (skipPrep ? openCam() : setScr('prep', 1));
+    if (!demo) return goNext();
+    return dev === 1 ? goNext() : connect(goNext);
+  };
 
   const makeFallbackResult = (img, preset = 'auto') => {
     if (preset === 'low') {
@@ -275,9 +288,9 @@ export function AppProvider({ children }) {
       finalCur = {
         ...piRes.result,
         img: piRes.result.img || photo || null,
-        defects: suggestDefects(piRes.result),
+        defects: Array.isArray(piRes.result.defects) ? piRes.result.defects : suggestDefects(piRes.result),
         autoDefects: true,
-        defectsConfirmed: false,
+        defectsConfirmed: true,
       };
     } else {
       finalCur = makeFallbackResult(photo || null);
@@ -366,12 +379,16 @@ export function AppProvider({ children }) {
     const payload = { ...scanObj, g: normGrade(scanObj.g), defects: autoList, histIdx, fromHistory };
     setRecScan(payload);
     close();
-    const g = normGrade(scanObj.x || scanObj.g);
-    if (g === 'Extra Class' || scanObj.defectsConfirmed) {
-      setScr('recs', 1);
-    } else {
-      setScr('defects', 1);
-    }
+    setScr('recs', 1);
+  };
+
+  const openDefectEditor = (scanObj, returnTo = 'res', histIdx = null, fromHistory = false) => {
+    if (!scanObj) return;
+    const autoList = Array.isArray(scanObj.defects) ? scanObj.defects : suggestDefects(scanObj);
+    const payload = { ...scanObj, g: normGrade(scanObj.g), defects: autoList, histIdx, fromHistory, returnTo };
+    setRecScan(payload);
+    close();
+    setScr('defects', 1);
   };
 
   const saveScanDefects = (defects) => {
@@ -546,7 +563,7 @@ export function AppProvider({ children }) {
     }
     const iv = setInterval(() => {
       i++;
-      if (i >= 6) {
+      if (i >= 4) {
         clearInterval(iv);
         setDg(-1);
         toast(piReachable ? 'Diagnostics passed' : 'Pi 5 chamber is offline');
@@ -559,7 +576,8 @@ export function AppProvider({ children }) {
   const value = {
     snd, toggleSnd, anim, toggleAnim,
     piUrl, setPiUrl, recScan, setRecScan, zoomImg, setZoomImg, demoSim, setDemoSim,
-    openRecommendations, saveScanDefects, saveScanKg, confirmDelete,
+    seenOnb, setSeenOnb, skipPrep, setSkipPrep, completeOnboarding,
+    openRecommendations, openDefectEditor, saveScanDefects, saveScanKg, confirmDelete,
     sys, dark, setDark, T,
     scr, setScr, goTab, navDir,
     oi, setOi, demo, setDemo, dev, setDev,

@@ -1,264 +1,486 @@
-import React,{useEffect,useRef} from 'react';
-import {View,Text,Pressable,ScrollView,Animated,Image,ActivityIndicator} from 'react-native';
-import {LinearGradient} from 'expo-linear-gradient';
-import Svg,{Circle} from 'react-native-svg';
-import {Ionicons} from '@expo/vector-icons';
-import {GOLD,GC,GS,GRADES,normGrade,pc} from '../theme';
-import {GN,ADV,PRICE_CONFIG,buildWhySummary} from '../data';
-import {Card,Txt,Btn,Bar} from '../components';
-import {useApp} from '../AppContext';
-import {sfx} from '../sound';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, Pressable, ScrollView, Animated, Image } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { GOLD, GC, GS, GRADES, normGrade, pc } from '../theme';
+import { GN, PRICE_CONFIG, defectById } from '../data';
+import { Txt, Btn, Kernel, DefectKernel } from '../components';
+import { useApp } from '../AppContext';
+import { sfx } from '../sound';
 
-export default function Result(){
-  const {T,cur,tab,setTab,pd,saving,openCam,save,askDiscard,openRecommendations,setZoomImg,anim}=useApp();
-  const badgeScale=useRef(new Animated.Value(anim?0.72:1)).current;
+const HERO_THEME = {
+  'Extra Class': {
+    grad: ['#0f3d28', '#175438', '#0c2b1d'],
+    glow: 'rgba(52, 211, 153, 0.18)',
+    verdict: 'Top-grade whole kernel',
+    icon: 'ribbon',
+  },
+  'Class I': {
+    grad: ['#0e3832', '#154f46', '#0b2824'],
+    glow: 'rgba(45, 212, 191, 0.18)',
+    verdict: 'Good whole kernel',
+    icon: 'checkmark-circle',
+  },
+  'Class II': {
+    grad: ['#3a2d0f', '#4f3c13', '#261d0a'],
+    glow: 'rgba(245, 158, 11, 0.20)',
+    verdict: 'Minor surface flaws',
+    icon: 'alert-circle',
+  },
+  'Defect': {
+    grad: ['#3d1616', '#561d1d', '#290f0f'],
+    glow: 'rgba(248, 113, 113, 0.20)',
+    verdict: 'Sort out / reject',
+    icon: 'warning',
+  },
+};
 
-  useEffect(()=>{
-    if(!cur)return;
-    if(!anim){
-      badgeScale.setValue(1);
+export default function Result() {
+  const { T, dark, cur, saving, openCam, save, askDiscard, openRecommendations, openDefectEditor, setZoomImg, anim } = useApp();
+  const heroScale = useRef(new Animated.Value(anim ? 0.94 : 1)).current;
+  const heroFade = useRef(new Animated.Value(anim ? 0 : 1)).current;
+
+  useEffect(() => {
+    if (!cur) return;
+    if (!anim) {
+      heroScale.setValue(1);
+      heroFade.setValue(1);
       return;
     }
-    badgeScale.setValue(0.72);
-    Animated.spring(badgeScale,{
-      toValue:1,
-      damping:13,
-      stiffness:180,
-      useNativeDriver:true,
-    }).start();
-  },[cur,anim,badgeScale]);
+    heroScale.setValue(0.94);
+    heroFade.setValue(0);
+    Animated.parallel([
+      Animated.spring(heroScale, { toValue: 1, damping: 15, stiffness: 170, useNativeDriver: true }),
+      Animated.timing(heroFade, { toValue: 1, duration: 240, useNativeDriver: true }),
+    ]).start();
+  }, [cur, anim, heroScale, heroFade]);
 
-  if(!cur)return null;
-  const g=normGrade(cur.g);
-  const c=GC[g];
-  const why=buildWhySummary(cur);
-  const r=30,circ=2*Math.PI*r;
+  if (!cur) return null;
+  const g = normGrade(cur.g);
+  const c = GC[g];
+  const ht = HERO_THEME[g] || HERO_THEME['Class I'];
+  const detectedDefects = (cur.defects || []).map(defectById).filter(Boolean);
+  const confPct = pc(cur.c);
 
   return (
-    <View style={{flex:1,backgroundColor:T.bg}}>
-      <ScrollView contentContainerStyle={{paddingBottom:130}} showsVerticalScrollIndicator={false}>
-        <LinearGradient
-          colors={T.hero}
-          style={{padding:20,paddingTop:56,paddingBottom:28,borderBottomLeftRadius:34,borderBottomRightRadius:34}}
-        >
-          <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center'}}>
-            <Pressable
-              onPress={()=>{sfx('tap');askDiscard()}}
-              style={({pressed})=>({
-                width:40,
-                height:40,
-                borderRadius:14,
-                backgroundColor:'rgba(255,255,255,0.12)',
-                alignItems:'center',
-                justifyContent:'center',
-                transform:[{scale:pressed&&anim?0.94:1}],
-              })}
-            >
-              <Ionicons name="chevron-back" size={24} color="#fff"/>
-            </Pressable>
-            <Text style={{color:'#fff',fontFamily:'OpenRunde-Bold',fontSize:17}}>Classification result</Text>
-            <View style={{width:40}}/>
-          </View>
+    <View style={{ flex: 1, backgroundColor: T.bg }}>
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: 18, paddingTop: 52, paddingBottom: 124, gap: 14 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Minimal Floating Header */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 2 }}>
+          <Pressable
+            onPress={() => { sfx('tap'); askDiscard(); }}
+            style={({ pressed }) => ({
+              width: 40,
+              height: 40,
+              borderRadius: 14,
+              backgroundColor: T.card,
+              borderWidth: 1,
+              borderColor: T.line,
+              alignItems: 'center',
+              justifyContent: 'center',
+              transform: [{ scale: pressed && anim ? 0.94 : 1 }],
+            })}
+          >
+            <Ionicons name="chevron-back" size={21} color={T.ink} />
+          </Pressable>
 
-          <View style={{flexDirection:'row',alignItems:'center',gap:16,marginTop:22}}>
-            <Animated.View style={{
-              width:88,
-              height:88,
-              borderRadius:26,
-              backgroundColor:c,
-              alignItems:'center',
-              justifyContent:'center',
-              transform:[{scale:badgeScale}],
+          <Txt s={16} w="800">Scan Result</Txt>
+
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 5,
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+            borderRadius: 99,
+            backgroundColor: cur.rv ? GC.B + '22' : c + '1c',
+          }}>
+            <Ionicons name={cur.rv ? 'flag' : 'sparkles'} size={12} color={cur.rv ? GC.B : c} />
+            <Text style={{
+              color: cur.rv ? GC.B : c,
+              fontFamily: 'OpenRunde-Bold',
+              fontSize: 11.5,
             }}>
-              <Text style={{color:'#fff',fontSize:38,fontFamily:'OpenRunde-Bold'}}>{GS[g]}</Text>
-            </Animated.View>
-            <View style={{flex:1}}>
-              <Text style={{color:'#fff',fontSize:25,fontFamily:'OpenRunde-Bold'}}>{GN[g][0]}</Text>
-              <Text style={{color:'#ffffffbb',marginTop:2}}>{GN[g][1]}</Text>
-            </View>
-            <View style={{width:72,height:72,alignItems:'center',justifyContent:'center'}}>
-              <Svg width={72} height={72} style={{position:'absolute',transform:[{rotate:'-90deg'}]}}>
-                <Circle cx={36} cy={36} r={r} stroke="rgba(255,255,255,0.2)" strokeWidth={6} fill="none"/>
-                <Circle
-                  cx={36}
-                  cy={36}
-                  r={r}
-                  stroke={GOLD}
-                  strokeWidth={6}
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeDasharray={circ}
-                  strokeDashoffset={circ*(1-cur.c)}
-                />
-              </Svg>
-              <Text style={{color:'#fff',fontFamily:'OpenRunde-Bold',fontSize:15}}>{pc(cur.c)}%</Text>
-            </View>
+              {cur.rv ? 'Review' : 'AI Graded'}
+            </Text>
           </View>
-        </LinearGradient>
+        </View>
 
-        <View style={{padding:20,gap:14}}>
-          {cur.rv&&(
-            <View style={{flexDirection:'row',gap:12,backgroundColor:GC.B+'2a',borderRadius:18,padding:14}}>
-              <Ionicons name="flag" size={20} color={GC.B}/>
-              <Txt style={{flex:1}} s={14}>
-                <Text style={{fontFamily:'OpenRunde-Bold'}}>Flagged for expert review. </Text>
-                Confidence is low, so this isn’t a verified grade.
-              </Txt>
-            </View>
-          )}
+        {/* Grade-Adaptive Editorial Hero Card */}
+        <Animated.View style={{ opacity: heroFade, transform: [{ scale: heroScale }] }}>
+          <LinearGradient
+            colors={ht.grad}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              borderRadius: 32,
+              padding: 20,
+              overflow: 'hidden',
+              shadowColor: '#000',
+              shadowOpacity: dark ? 0.35 : 0.16,
+              shadowRadius: 18,
+              shadowOffset: { width: 0, height: 10 },
+              elevation: 6,
+            }}
+          >
+            {/* Subtle Ambient Top-Right Glow */}
+            <View
+              pointerEvents="none"
+              style={{
+                position: 'absolute',
+                top: -45,
+                right: -35,
+                width: 170,
+                height: 170,
+                borderRadius: 85,
+                backgroundColor: ht.glow,
+              }}
+            />
 
-          {cur.img&&(
-            <Card style={{borderWidth:1,borderColor:T.line,padding:10}}>
+            {/* Visual Stage: Captured Photo OR Spotlight Peanut */}
+            {cur.img ? (
               <Pressable
-                onPress={()=>{sfx('tap');setZoomImg(cur.img)}}
-                style={{width:'100%',height:184,borderRadius:18,overflow:'hidden',backgroundColor:'#181a17'}}
-              >
-                <Image source={{uri:cur.img}} style={{width:'100%',height:'100%'}} resizeMode="cover"/>
-                <View style={{
-                  position:'absolute',
-                  right:10,
-                  bottom:10,
-                  backgroundColor:'rgba(0,0,0,0.6)',
-                  paddingHorizontal:10,
-                  paddingVertical:5,
-                  borderRadius:99,
-                  flexDirection:'row',
-                  alignItems:'center',
-                  gap:5,
-                }}>
-                  <Ionicons name="expand-outline" size={13} color="#fff"/>
-                  <Text style={{color:'#fff',fontSize:11.5,fontFamily:'OpenRunde-Bold'}}>Tap to zoom</Text>
-                </View>
-              </Pressable>
-            </Card>
-          )}
-
-          {/* Plain-language Why this grade explanation */}
-          <Card style={{borderWidth:1,borderColor:T.line}}>
-            <View style={{flexDirection:'row',alignItems:'center',gap:8,marginBottom:8}}>
-              <Ionicons name="sparkles-outline" size={18} color={GOLD}/>
-              <Txt s={16} w="800">Why {GN[g][0]}?</Txt>
-            </View>
-            <Txt s={14.5} w="700" style={{marginBottom:6}}>{why.headline}</Txt>
-            {why.factors.map((f,idx)=>(
-              <View key={idx} style={{flexDirection:'row',gap:8,marginTop:5}}>
-                <Text style={{color:c,fontFamily:'OpenRunde-Bold'}}>•</Text>
-                <Txt s={13.5} c={T.mute} style={{flex:1,lineHeight:19}}>{f}</Txt>
-              </View>
-            ))}
-            <Pressable
-              onPress={()=>{sfx('tap');openRecommendations(cur,null,false)}}
-              style={({pressed})=>({
-                marginTop:14,
-                paddingVertical:12,
-                paddingHorizontal:14,
-                borderRadius:15,
-                backgroundColor:T.g2+'22',
-                borderWidth:1,
-                borderColor:T.g2+'44',
-                flexDirection:'row',
-                alignItems:'center',
-                justifyContent:'space-between',
-                opacity:pressed?0.8:1,
-              })}
-            >
-              <View style={{flexDirection:'row',alignItems:'center',gap:9}}>
-                <Ionicons name="medkit-outline" size={18} color={T.g2}/>
-                <Txt s={14} w="700" c={T.g2}>Inspect defects &amp; batch calculator</Txt>
-              </View>
-              <Ionicons name="arrow-forward" size={17} color={T.g2}/>
-            </Pressable>
-          </Card>
-
-          <Card style={{borderWidth:1,borderColor:T.line}}>
-            <Txt w="700">Class probabilities</Txt>
-            {GRADES.map(x=>(
-              <View key={x} style={{flexDirection:'row',alignItems:'center',gap:10,marginTop:10}}>
-                <Txt s={13} w="700" style={{width:82}}>{x}</Txt>
-                <View style={{flex:1}}><Bar v={cur.p?.[x]||0} c={GC[x]} h={8}/></View>
-                <Txt s={13} style={{width:36,textAlign:'right'}}>{pc(cur.p?.[x]||0)}%</Txt>
-              </View>
-            ))}
-          </Card>
-
-          <View style={{flexDirection:'row',backgroundColor:T.line,borderRadius:16,padding:4}}>
-            {[['p','Price'],['a','Advice']].map(([k,l])=>(
-              <Pressable
-                key={k}
-                onPress={()=>{sfx('tap');setTab(k)}}
+                onPress={() => { sfx('tap'); setZoomImg(cur.img); }}
                 style={{
-                  flex:1,
-                  height:40,
-                  borderRadius:12,
-                  alignItems:'center',
-                  justifyContent:'center',
-                  backgroundColor:tab===k?T.card:'transparent',
+                  width: '100%',
+                  height: 178,
+                  borderRadius: 22,
+                  overflow: 'hidden',
+                  backgroundColor: 'rgba(0,0,0,0.35)',
+                  marginBottom: 16,
                 }}
               >
-                <Txt w="700" c={tab===k?T.ink:T.mute}>{l}</Txt>
+                <Image source={{ uri: cur.img }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                <View style={{
+                  position: 'absolute',
+                  right: 10,
+                  bottom: 10,
+                  backgroundColor: 'rgba(0,0,0,0.62)',
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  borderRadius: 99,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 5,
+                }}>
+                  <Ionicons name="expand-outline" size={13} color="#fff" />
+                  <Text style={{ color: '#fff', fontSize: 11, fontFamily: 'OpenRunde-Bold' }}>Zoom</Text>
+                </View>
               </Pressable>
-            ))}
+            ) : (
+              <View style={{ alignItems: 'center', justifyContent: 'center', paddingTop: 6, paddingBottom: 14 }}>
+                <View style={{
+                  width: 146,
+                  height: 146,
+                  borderRadius: 73,
+                  backgroundColor: ht.glow,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <View style={{
+                    width: 118,
+                    height: 118,
+                    borderRadius: 59,
+                    backgroundColor: 'rgba(255,255,255,0.08)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.16)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <Kernel g={g} size={96} rot={-16} />
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* Centered Verdict & Grade Pill */}
+            <View style={{ alignItems: 'center', gap: 4 }}>
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                paddingHorizontal: 11,
+                paddingVertical: 4,
+                borderRadius: 99,
+                backgroundColor: c,
+              }}>
+                <Ionicons name={ht.icon} size={13} color="#fff" />
+                <Text style={{ color: '#fff', fontFamily: 'OpenRunde-Bold', fontSize: 11.5, letterSpacing: 0.4 }}>
+                  {GS[g]} · {ht.verdict.toUpperCase()}
+                </Text>
+              </View>
+
+              <Text style={{
+                color: '#fff',
+                fontFamily: 'OpenRunde-Bold',
+                fontSize: 34,
+                letterSpacing: -0.7,
+                marginTop: 4,
+              }}>
+                {GN[g][0]}
+              </Text>
+            </View>
+
+            {/* Integrated Sleek Confidence Meter */}
+            <View style={{
+              marginTop: 16,
+              backgroundColor: 'rgba(0,0,0,0.24)',
+              borderRadius: 16,
+              paddingHorizontal: 14,
+              paddingVertical: 11,
+              gap: 8,
+            }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ color: 'rgba(255,255,255,0.72)', fontFamily: 'OpenRunde-Semibold', fontSize: 12 }}>
+                  AI Confidence
+                </Text>
+                <Text style={{ color: '#fff', fontFamily: 'OpenRunde-Bold', fontSize: 15 }}>
+                  {confPct}%
+                </Text>
+              </View>
+              <View style={{
+                height: 6,
+                borderRadius: 99,
+                backgroundColor: 'rgba(255,255,255,0.14)',
+                overflow: 'hidden',
+              }}>
+                <View style={{
+                  width: `${Math.max(confPct, 4)}%`,
+                  height: '100%',
+                  borderRadius: 99,
+                  backgroundColor: cur.rv ? GOLD : c,
+                }} />
+              </View>
+            </View>
+          </LinearGradient>
+        </Animated.View>
+
+        {/* Low-Confidence Banner (1-liner) */}
+        {cur.rv && (
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+            backgroundColor: GC.B + '1f',
+            borderWidth: 1,
+            borderColor: GC.B + '44',
+            borderRadius: 18,
+            paddingHorizontal: 14,
+            paddingVertical: 10,
+          }}>
+            <Ionicons name="alert-circle" size={18} color={GC.B} />
+            <Txt s={13} w="600" style={{ flex: 1 }}>
+              Low confidence — verify kernel manually.
+            </Txt>
+          </View>
+        )}
+
+        {/* Unified AI Insights Card: Detected Anomalies + Segmented Score Distribution */}
+        <View style={{
+          backgroundColor: T.card,
+          borderRadius: 26,
+          borderWidth: 1,
+          borderColor: T.line,
+          padding: 16,
+          gap: 16,
+        }}>
+          {/* Part 1: AI Detected Anomalies (Auto-selected + Editable) */}
+          <View style={{ gap: 10 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                <Ionicons name="scan-circle-outline" size={18} color={detectedDefects.length ? c : GC['Extra Class']} />
+                <Txt s={14.5} w="800">AI Anomalies</Txt>
+                <View style={{
+                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                  borderRadius: 99,
+                  backgroundColor: detectedDefects.length ? c + '1f' : GC['Extra Class'] + '1f',
+                }}>
+                  <Text style={{
+                    color: detectedDefects.length ? c : GC['Extra Class'],
+                    fontFamily: 'OpenRunde-Bold',
+                    fontSize: 11,
+                  }}>
+                    {detectedDefects.length ? `${detectedDefects.length} auto` : 'None'}
+                  </Text>
+                </View>
+              </View>
+
+              <Pressable
+                onPress={() => { sfx('tap'); openDefectEditor(cur, 'res', null, false); }}
+                hitSlop={8}
+                style={({ pressed }) => ({
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 4,
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  borderRadius: 99,
+                  backgroundColor: dark ? '#1a2820' : T.bg,
+                  borderWidth: 1,
+                  borderColor: T.line,
+                  opacity: pressed ? 0.7 : 1,
+                })}
+              >
+                <Ionicons name="create-outline" size={13} color={T.g2} />
+                <Text style={{ color: T.g2, fontFamily: 'OpenRunde-Bold', fontSize: 12 }}>Edit</Text>
+              </Pressable>
+            </View>
+
+            {detectedDefects.length > 0 ? (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {detectedDefects.map(d => (
+                  <Pressable
+                    key={d.id}
+                    onPress={() => { sfx('tap'); openDefectEditor(cur, 'res', null, false); }}
+                    style={({ pressed }) => ({
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 8,
+                      paddingVertical: 7,
+                      paddingLeft: 8,
+                      paddingRight: 12,
+                      borderRadius: 15,
+                      backgroundColor: dark ? '#16221c' : T.bg,
+                      borderWidth: 1,
+                      borderColor: d.color + '48',
+                      opacity: pressed ? 0.8 : 1,
+                    })}
+                  >
+                    <DefectKernel id={d.id} size={26} />
+                    <Txt s={13} w="700">{d.name}</Txt>
+                  </Pressable>
+                ))}
+              </View>
+            ) : (
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+                paddingVertical: 9,
+                paddingHorizontal: 12,
+                borderRadius: 14,
+                backgroundColor: GC['Extra Class'] + '12',
+              }}>
+                <Ionicons name="checkmark-circle" size={17} color={GC['Extra Class']} />
+                <Txt s={13.5} w="600">Clean kernel — no anomalies found</Txt>
+              </View>
+            )}
           </View>
 
-          {tab==='p'?(
-            !pd?(
-              <Card style={{alignItems:'center',gap:10,padding:30,borderWidth:1,borderColor:T.line}}>
-                <ActivityIndicator color={T.g2}/>
-                <Txt c={T.mute}>Fetching reference price…</Txt>
-              </Card>
-            ):(
-              <Card style={{borderWidth:1,borderColor:T.line}}>
-                <Txt s={13.5} c={T.mute}>
-                  {cur.price?'Live reference price from Pi 5':`${PRICE_CONFIG.sourceName} · ${PRICE_CONFIG.location}`}
-                </Txt>
-                <Txt s={38} w="800">
-                  ₱{(cur.price??PRICE_CONFIG.basePricePerKg).toFixed(2)} <Txt s={16} c={T.mute}>per kg</Txt>
-                </Txt>
-                {[
-                  ['Commodity',PRICE_CONFIG.commodity],
-                  ['Source',cur.priceSource||(cur.fromPi?'Raspberry Pi 5 API':PRICE_CONFIG.sourceName)],
-                  ['Reference',PRICE_CONFIG.referencePeriod],
-                  ['Model',cur.model||'yolo11n-cls 1.0.0'],
-                ].map(([a,b])=>(
-                  <View key={a} style={{flexDirection:'row',justifyContent:'space-between',paddingVertical:10}}>
-                    <Txt c={T.mute} s={14}>{a}</Txt>
-                    <Txt s={14}>{b}</Txt>
+          <View style={{ height: 1, backgroundColor: T.line }} />
+
+          {/* Part 2: Continuous Stacked Class Distribution Bar + Clean 4-Col Legend */}
+          <View style={{ gap: 10 }}>
+            <View style={{
+              flexDirection: 'row',
+              height: 10,
+              borderRadius: 99,
+              overflow: 'hidden',
+              backgroundColor: dark ? '#1d2b23' : T.line,
+              gap: 2,
+            }}>
+              {GRADES.map(x => {
+                const v = cur.p?.[x] || 0;
+                if (v <= 0.005) return null;
+                return (
+                  <View
+                    key={x}
+                    style={{
+                      flex: v,
+                      backgroundColor: GC[x],
+                      borderRadius: 99,
+                    }}
+                  />
+                );
+              })}
+            </View>
+
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              {GRADES.map(x => {
+                const active = x === g;
+                const col = GC[x];
+                return (
+                  <View key={x} style={{ alignItems: 'center', flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: col }} />
+                      <Text style={{
+                        color: active ? col : T.mute,
+                        fontFamily: 'OpenRunde-Bold',
+                        fontSize: 11.5,
+                      }}>
+                        {GS[x]}
+                      </Text>
+                    </View>
+                    <Txt s={14} w={active ? '800' : '600'} c={active ? T.ink : T.mute} style={{ marginTop: 2 }}>
+                      {pc(cur.p?.[x] || 0)}%
+                    </Txt>
                   </View>
-                ))}
-                <Txt s={12.5} c={T.mute}>A reference farmgate price isn’t a {g} buyer offer until experts approve adjustments.</Txt>
-              </Card>
-            )
-          ):(
-            <Card style={{borderWidth:1,borderColor:T.line}}>
-              <Txt w="700">{cur.rv?'Verify with an expert first':GN[g][1]}</Txt>
-              {ADV[g].map(a=>(
-                <View key={a} style={{flexDirection:'row',gap:10,paddingVertical:9}}>
-                  <Ionicons name="checkmark" size={20} color={GC.A}/>
-                  <Txt style={{flex:1}}>{a}</Txt>
-                </View>
-              ))}
-              <Txt s={12.5} c={T.mute}>Proposed advice, pending expert validation.</Txt>
-            </Card>
-          )}
+                );
+              })}
+            </View>
+          </View>
         </View>
+
+        {/* Tinted Interactive CTA: Guide & Batch Value */}
+        <Pressable
+          onPress={() => { sfx('tap'); openRecommendations(cur, null, false); }}
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            backgroundColor: dark ? '#15291f' : '#e6f3ec',
+            borderRadius: 22,
+            borderWidth: 1,
+            borderColor: T.g2 + '40',
+            paddingVertical: 14,
+            paddingHorizontal: 16,
+            gap: 12,
+            transform: [{ scale: pressed && anim ? 0.985 : 1 }],
+          })}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+            <View style={{
+              width: 40,
+              height: 40,
+              borderRadius: 13,
+              backgroundColor: T.g2,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <Ionicons name="calculator-outline" size={20} color="#fff" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Txt s={15} w="800">Guide &amp; Batch Value</Txt>
+              <Txt s={12.5} c={T.mute}>
+                Fixes &amp; PSA ₱{(cur.price ?? PRICE_CONFIG.basePricePerKg).toFixed(0)}/kg
+              </Txt>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={T.g2} />
+        </Pressable>
       </ScrollView>
 
+      {/* Sticky Bottom Actions */}
       <View style={{
-        position:'absolute',
-        bottom:0,
-        left:0,
-        right:0,
-        backgroundColor:T.bg,
-        borderTopWidth:1,
-        borderTopColor:T.line,
-        paddingHorizontal:20,
-        paddingTop:14,
-        paddingBottom:32,
-        flexDirection:'row',
-        gap:12,
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: T.bg,
+        borderTopWidth: 1,
+        borderTopColor: T.line,
+        paddingHorizontal: 18,
+        paddingTop: 12,
+        paddingBottom: 30,
+        flexDirection: 'row',
+        gap: 12,
       }}>
-        <Btn t="Scan again" kind="sec" onPress={openCam}/>
-        <Btn t="Save result" onPress={save} busy={saving}/>
+        <Btn t="Scan again" kind="sec" onPress={openCam} />
+        <Btn t="Save result" onPress={save} busy={saving} />
       </View>
     </View>
   );

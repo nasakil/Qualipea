@@ -23,7 +23,7 @@ function mjpegHtml(src){
 }
 
 export default function Scanner(){
-  const {demo,piUrl,setScr,cap,setCap,photo,setPhoto,scan,analyze,toast,anim,demoSim,setDemoSim}=useApp();
+  const {demo,piUrl,setScr,goTab,cap,setCap,photo,setPhoto,scan,analyze,toast,anim,demoSim,setDemoSim}=useApp();
   const [permission,requestPermission]=useCameraPermissions();
   const [taking,setTaking]=useState(false);
   const [torch,setTorch]=useState(false);
@@ -31,10 +31,17 @@ export default function Scanner(){
   const [streamKey,setStreamKey]=useState(()=>Date.now());
   const [streamErr,setStreamErr]=useState(false);
   const camRef=useRef(null);
+  const flash=useRef(new Animated.Value(0)).current;
 
   const isRpi=!demo&&camSource==='pi';
   const isPhone=!demo&&camSource==='phone';
   const videoSrc=piVideoUrl(piUrl,streamKey);
+
+  const triggerFlash=()=>{
+    if(!anim)return;
+    flash.setValue(0.85);
+    Animated.timing(flash,{toValue:0,duration:220,useNativeDriver:true}).start();
+  };
 
   const refreshStream=()=>{
     sfx('tap');
@@ -45,6 +52,7 @@ export default function Scanner(){
   const handleCapture=async()=>{
     if(taking)return;
     sfx('shutter');
+    triggerFlash();
     if(demo){
       setCap(true);
       return;
@@ -275,20 +283,43 @@ export default function Scanner(){
                 <Text style={{color:'#9fb5a8',fontFamily:'OpenRunde-Regular',fontSize:13,textAlign:'center',lineHeight:19}}>
                   Make sure api_server.py is running at {piUrl.replace(/^https?:\/\//,'')}/video on the same Wi-Fi.
                 </Text>
-                <Pressable
-                  onPress={refreshStream}
-                  style={{
-                    marginTop:6,
-                    paddingHorizontal:18,
-                    paddingVertical:10,
-                    borderRadius:14,
-                    backgroundColor:'rgba(255,255,255,0.12)',
-                  }}
-                >
-                  <Text style={{color:'#fff',fontFamily:'OpenRunde-Bold',fontSize:13.5}}>Retry stream</Text>
-                </Pressable>
+                <View style={{flexDirection:'row',gap:10,marginTop:6}}>
+                  <Pressable
+                    onPress={refreshStream}
+                    style={{
+                      paddingHorizontal:18,
+                      paddingVertical:10,
+                      borderRadius:14,
+                      backgroundColor:'rgba(255,255,255,0.12)',
+                    }}
+                  >
+                    <Text style={{color:'#fff',fontFamily:'OpenRunde-Bold',fontSize:13.5}}>Retry stream</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={()=>{sfx('tap');goTab('set')}}
+                    style={{
+                      paddingHorizontal:16,
+                      paddingVertical:10,
+                      borderRadius:14,
+                      backgroundColor:GOLD,
+                    }}
+                  >
+                    <Text style={{color:'#1d1403',fontFamily:'OpenRunde-Bold',fontSize:13.5}}>Edit Pi IP</Text>
+                  </Pressable>
+                </View>
               </View>
             )}
+
+            <Animated.View
+              pointerEvents="none"
+              style={{
+                position:'absolute',
+                top:0,left:0,right:0,bottom:0,
+                backgroundColor:'#fff',
+                opacity:flash,
+                zIndex:10,
+              }}
+            />
 
             <View pointerEvents="none" style={{width:220,height:220,alignItems:'center',justifyContent:'center'}}>
               <Brk s={38} c={cap?GC.A:GOLD}/>

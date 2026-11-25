@@ -16,7 +16,7 @@ const TEAM_MEMBERS = [
 ];
 
 export default function Settings() {
-  const { snd, toggleSnd, anim, toggleAnim, piUrl, setPiUrl, dark, setDark, T, demo, dev, dg, connect, toggleDemo, askExit, runDiag, setSheet, close } = useApp();
+  const { snd, toggleSnd, anim, toggleAnim, piUrl, setPiUrl, skipPrep, setSkipPrep, dark, setDark, T, demo, dev, dg, connect, toggleDemo, askExit, runDiag, setSheet, close } = useApp();
   const [showSpecs, setShowSpecs] = useState(false);
 
   const openTeamSheet = () => {
@@ -90,15 +90,14 @@ export default function Settings() {
     ['hardware-chip-outline', 'Raspberry Pi 5', on, on ? `Connected (${piUrl.replace(/^https?:\/\//, '')})` : dev === 2 ? 'Connecting…' : `Offline · ${piUrl.replace(/^https?:\/\//, '')}`],
     ['camera-outline', 'Camera Module 3', on, on ? 'Ready, 12 MP' : 'Unavailable until the Pi connects'],
     ['sunny-outline', 'LED ring', on, on ? 'On, lighting is even' : 'Off'],
-    ['cube-outline', 'Grading model', on, on ? 'yolo11n-cls 1.0.0 loaded, 4 classes (Extra Class, Class I, Class II, Defect)' : 'Can’t check until the Pi connects'],
-    ['pricetag-outline', 'Pricing API', demo, demo ? 'Demo provider, sample data' : 'Not configured'],
-    ['cloud-done-outline', 'Cloud sync', demo, demo ? 'Synced just now' : 'Sign in to sync'],
+    ['cube-outline', 'Grading model', on, on ? 'yolo11n-cls 1.0.0 · 4 classes' : 'Can’t check until the Pi connects'],
   ];
   const ok = R.filter(r => r[2]).length;
 
   const prefs = [
     ['Animations', 'Motion, transitions and pulses', anim, toggleAnim],
-    ['Sound effects', 'Audio feedback for taps and scans', snd, toggleSnd],
+    ['Sound & haptics', 'Audio and tactile feedback', snd, toggleSnd],
+    ['Skip scan prep', 'Go straight to the scanner', skipPrep, setSkipPrep],
     ['Demo mode', 'Simulated chamber and sample data', demo, toggleDemo],
     ['Dark mode', 'Low-glare dark interface', dark, setDark],
   ];
@@ -131,9 +130,9 @@ export default function Settings() {
       <Card style={{ borderWidth: 1, borderColor: T.line }}>
         <Txt s={13.5} c={T.mute}>System status</Txt>
         <Txt s={23} w="800" style={{ marginTop: 2 }}>
-          {dev === 2 ? 'Connecting…' : ok === 6 ? 'All systems ready' : on ? 'Some checks pending' : 'Chamber offline'}
+          {dev === 2 ? 'Connecting…' : ok === R.length ? 'All systems ready' : on ? 'Some checks pending' : 'Chamber offline'}
         </Txt>
-        <Txt s={13.5} c={T.mute} style={{ marginBottom: 8 }}>{ok} of 6 checks passing</Txt>
+        <Txt s={13.5} c={T.mute} style={{ marginBottom: 8 }}>{ok} of {R.length} checks passing</Txt>
         {R.map(([ic, t, o, s], i) => (
           <View key={t} style={{ flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 10 }}>
             <View style={{
@@ -170,26 +169,46 @@ export default function Settings() {
         <Txt s={12.5} c={T.mute} style={{ marginTop: 2, marginBottom: 10 }}>
           Used when Demo mode is off to connect and grade kernel photos.
         </Txt>
-        <TextInput
-          value={piUrl}
-          onChangeText={setPiUrl}
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType="url"
-          placeholder="http://192.168.137.31:5000"
-          placeholderTextColor={T.mute}
-          style={{
-            backgroundColor: T.bg,
-            color: T.ink,
-            borderWidth: 1,
-            borderColor: T.line,
-            borderRadius: 14,
-            paddingHorizontal: 14,
-            paddingVertical: 12,
-            fontSize: 14.5,
-            fontFamily:'OpenRunde-Semibold',
-          }}
-        />
+        <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+          <TextInput
+            value={piUrl}
+            onChangeText={setPiUrl}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="url"
+            placeholder="http://192.168.137.31:5000"
+            placeholderTextColor={T.mute}
+            style={{
+              flex: 1,
+              backgroundColor: T.bg,
+              color: T.ink,
+              borderWidth: 1,
+              borderColor: T.line,
+              borderRadius: 14,
+              paddingHorizontal: 14,
+              paddingVertical: 12,
+              fontSize: 14.5,
+              fontFamily: 'OpenRunde-Semibold',
+            }}
+          />
+          <Pressable
+            onPress={() => { sfx('tap'); connect(); }}
+            style={({ pressed }) => ({
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              borderRadius: 14,
+              backgroundColor: T.g2,
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: pressed ? 0.85 : 1,
+              transform: [{ scale: pressed && anim ? 0.96 : 1 }],
+            })}
+          >
+            <Text style={{ color: '#fff', fontFamily: 'OpenRunde-Bold', fontSize: 14 }}>
+              {dev === 2 ? 'Testing…' : 'Test'}
+            </Text>
+          </Pressable>
+        </View>
       </Card>
 
       <Card style={{ marginTop: 14, borderWidth: 1, borderColor: T.line, paddingVertical: 6 }}>

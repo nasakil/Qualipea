@@ -45,7 +45,7 @@ function ClassIllustration({grade}){
 const STEP_ICONS=['funnel-outline','shield-checkmark-outline','archive-outline'];
 
 export default function Recommendations(){
-  const {T,dark,recScan,saveScanKg,setScr,anim}=useApp();
+  const {T,dark,recScan,saveScanKg,openDefectEditor,setScr,anim}=useApp();
   const [expanded,setExpanded]=useState({});
   const [kgText,setKgText]=useState(recScan?.kg?String(recScan.kg):'');
 
@@ -99,16 +99,20 @@ export default function Recommendations(){
             </Pressable>
             <Text style={{color:'#fff',fontFamily:'OpenRunde-Bold',fontSize:17}}>Guide &amp; Value</Text>
             <Pressable
-              onPress={()=>{sfx('tap');setScr('defects',-1)}}
+              onPress={()=>{sfx('tap');openDefectEditor(recScan,'recs',recScan.histIdx,recScan.fromHistory)}}
               style={({pressed})=>({
                 paddingHorizontal:12,
                 paddingVertical:8,
                 borderRadius:12,
                 backgroundColor:'rgba(255,255,255,0.14)',
+                flexDirection:'row',
+                alignItems:'center',
+                gap:5,
                 opacity:pressed?0.75:1,
               })}
             >
-              <Text style={{color:'#fff',fontFamily:'OpenRunde-Bold',fontSize:12.5}}>Edit defects</Text>
+              <Ionicons name="create-outline" size={13} color="#fff"/>
+              <Text style={{color:'#fff',fontFamily:'OpenRunde-Bold',fontSize:12.5}}>Edit</Text>
             </Pressable>
           </View>
 
@@ -174,7 +178,7 @@ export default function Recommendations(){
 
           {/* Illustrated Defect Cards */}
           <View>
-            <Txt s={17.5} w="800" style={{marginBottom:10}}>Defect fixes</Txt>
+            <Txt s={17.5} w="800" style={{marginBottom:10}}>AI-detected defects</Txt>
             {selectedDefects.length?(
               <View style={{gap:10}}>
                 {selectedDefects.map(d=>{
@@ -247,7 +251,7 @@ export default function Recommendations(){
                   <Ionicons name="shield-checkmark-outline" size={22} color={GC['Extra Class']}/>
                 </View>
                 <View style={{flex:1}}>
-                  <Txt w="700">Clean batch — no defects ticked</Txt>
+                  <Txt w="700">No defects detected by AI</Txt>
                   <Txt s={13} c={T.mute}>Store sealed in a cool, dry place.</Txt>
                 </View>
               </Card>
