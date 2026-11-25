@@ -288,9 +288,9 @@ export function AppProvider({ children }) {
       finalCur = {
         ...piRes.result,
         img: piRes.result.img || photo || null,
-        defects: suggestDefects(piRes.result),
+        defects: Array.isArray(piRes.result.defects) ? piRes.result.defects : suggestDefects(piRes.result),
         autoDefects: true,
-        defectsConfirmed: false,
+        defectsConfirmed: true,
       };
     } else {
       finalCur = makeFallbackResult(photo || null);
@@ -379,12 +379,7 @@ export function AppProvider({ children }) {
     const payload = { ...scanObj, g: normGrade(scanObj.g), defects: autoList, histIdx, fromHistory };
     setRecScan(payload);
     close();
-    const g = normGrade(scanObj.x || scanObj.g);
-    if (g === 'Extra Class' || scanObj.defectsConfirmed) {
-      setScr('recs', 1);
-    } else {
-      setScr('defects', 1);
-    }
+    setScr('recs', 1);
   };
 
   const saveScanDefects = (defects) => {

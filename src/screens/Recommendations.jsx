@@ -98,18 +98,18 @@ export default function Recommendations(){
               <Ionicons name="chevron-back" size={24} color="#fff"/>
             </Pressable>
             <Text style={{color:'#fff',fontFamily:'OpenRunde-Bold',fontSize:17}}>Guide &amp; Value</Text>
-            <Pressable
-              onPress={()=>{sfx('tap');setScr('defects',-1)}}
-              style={({pressed})=>({
-                paddingHorizontal:12,
-                paddingVertical:8,
-                borderRadius:12,
-                backgroundColor:'rgba(255,255,255,0.14)',
-                opacity:pressed?0.75:1,
-              })}
-            >
-              <Text style={{color:'#fff',fontFamily:'OpenRunde-Bold',fontSize:12.5}}>Edit defects</Text>
-            </Pressable>
+            <View style={{
+              paddingHorizontal:10,
+              paddingVertical:6,
+              borderRadius:99,
+              backgroundColor:'rgba(255,255,255,0.14)',
+              flexDirection:'row',
+              alignItems:'center',
+              gap:5,
+            }}>
+              <Ionicons name="sparkles" size={12} color={GOLD}/>
+              <Text style={{color:'#fff',fontFamily:'OpenRunde-Bold',fontSize:11.5}}>AI</Text>
+            </View>
           </View>
 
           <View style={{flexDirection:'row',alignItems:'center',gap:16,marginTop:20}}>
@@ -174,7 +174,7 @@ export default function Recommendations(){
 
           {/* Illustrated Defect Cards */}
           <View>
-            <Txt s={17.5} w="800" style={{marginBottom:10}}>Defect fixes</Txt>
+            <Txt s={17.5} w="800" style={{marginBottom:10}}>AI-detected defects</Txt>
             {selectedDefects.length?(
               <View style={{gap:10}}>
                 {selectedDefects.map(d=>{
@@ -247,7 +247,7 @@ export default function Recommendations(){
                   <Ionicons name="shield-checkmark-outline" size={22} color={GC['Extra Class']}/>
                 </View>
                 <View style={{flex:1}}>
-                  <Txt w="700">Clean batch — no defects ticked</Txt>
+                  <Txt w="700">No defects detected by AI</Txt>
                   <Txt s={13} c={T.mute}>Store sealed in a cool, dry place.</Txt>
                 </View>
               </Card>
