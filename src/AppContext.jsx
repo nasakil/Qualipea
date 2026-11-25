@@ -5,7 +5,7 @@ import { GR, GC, GRADES, normGrade, pc, LT, DK, Th, AnimCtx } from './theme';
 import { GN, SEED, buildWhySummary, suggestDefects } from './data';
 import { Kernel, Card, Txt } from './components';
 import { sfx, setSfx, initAudio } from './sound';
-import { DEFAULT_PI_URL, normalizeUrl, checkPiHealth, scanFromPi, classifyKernel } from './api';
+import { DEFAULT_PI_URL, normalizeUrl, checkPiHealth, scanFromPi, analyzeCaptureOnPi, classifyKernel } from './api';
 
 const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
@@ -70,7 +70,12 @@ export function AppProvider({ children }) {
           if (typeof saved.demo === 'boolean') setDemo(saved.demo);
           if (typeof saved.seenOnb === 'boolean') setSeenOnb(saved.seenOnb);
           if (typeof saved.skipPrep === 'boolean') setSkipPrep(saved.skipPrep);
-          if (typeof saved.piUrl === 'string' && saved.piUrl.trim()) setPiUrl(saved.piUrl);
+          if (typeof saved.piUrl === 'string' && saved.piUrl.trim()) {
+            const migratedUrl = saved.piUrl.trim() === 'http://192.168.137.31:5000'
+              ? DEFAULT_PI_URL
+              : saved.piUrl;
+            setPiUrl(migratedUrl);
+          }
           if (Array.isArray(saved.hr)) {
             setHr(saved.hr.map(item => ({
               ...item,
@@ -252,7 +257,7 @@ export function AppProvider({ children }) {
     return { ...base, defects: suggestDefects(base), autoDefects: true, defectsConfirmed: false };
   };
 
-  const analyze = async (source = 'pi') => {
+  const analyze = async (source = 'pi', captureId = null) => {
     setPs(0);
     setScr('proc', 1);
 
@@ -271,14 +276,16 @@ export function AppProvider({ children }) {
       return;
     }
 
-    // Real mode: trigger GET /scan on Raspberry Pi 5 (default RPi Cam) or POST /predict (Phone fallback)
+    // Real mode: POST /analyze with capture_id (RPi Cam) or POST /grade -> /predict (Phone fallback)
     setPs(1);
     sfx('step', 0);
     setTimeout(() => { setPs(2); sfx('step', 1) }, 450);
 
     const piRes = (source === 'phone' && photo)
       ? await classifyKernel(piUrl, photo)
-      : await scanFromPi(piUrl);
+      : captureId
+        ? await analyzeCaptureOnPi(piUrl, captureId)
+        : await scanFromPi(piUrl);
     setPs(3);
     sfx('step', 2);
 

@@ -235,7 +235,7 @@ export default function Result() {
             }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={{ color: 'rgba(255,255,255,0.72)', fontFamily: 'OpenRunde-Semibold', fontSize: 12 }}>
-                  AI Confidence
+                  {cur.total ? `AI Confidence · ${cur.total} kernels` : 'AI Confidence'}
                 </Text>
                 <Text style={{ color: '#fff', fontFamily: 'OpenRunde-Bold', fontSize: 15 }}>
                   {confPct}%

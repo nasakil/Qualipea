@@ -176,7 +176,7 @@ export default function Settings() {
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="url"
-            placeholder="http://192.168.137.31:5000"
+            placeholder="http://192.168.137.31:8000"
             placeholderTextColor={T.mute}
             style={{
               flex: 1,
