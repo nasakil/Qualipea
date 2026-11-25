@@ -92,9 +92,7 @@ function parsePredictionPayload(data, base, fallbackImg = null) {
   c = Math.max(0, Math.min(1, c));
 
   let img = fallbackImg;
-  if (data.preview_base64) {
-    img = `data:image/jpeg;base64,${data.preview_base64}`;
-  } else if (data.image_url) {
+  if (data.image_url) {
     img = /^https?:\/\//i.test(data.image_url)
       ? data.image_url
       : `${base}${data.image_url.startsWith('/') ? '' : '/'}${data.image_url}`;
@@ -156,8 +154,8 @@ export async function captureFromPi(baseUrl) {
 }
 
 /**
- * Step 4 of Pi flow: POST /analyze {"capture_id": "...", "preview": true}
- * Crops kernels, classifies with YOLO11n-cls, and returns majority grade + annotated preview.
+ * Step 4 of Pi flow: POST /analyze {"capture_id": "...", "preview": false}
+ * Classifies with YOLO11n-cls and returns majority grade (clean photo, no bounding boxes).
  */
 export async function analyzeCaptureOnPi(baseUrl, captureId) {
   const base = normalizeUrl(baseUrl);
@@ -170,7 +168,7 @@ export async function analyzeCaptureOnPi(baseUrl, captureId) {
           Accept: 'application/json',
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ capture_id: captureId, preview: true }),
+        body: JSON.stringify({ capture_id: captureId, preview: false }),
       },
       45000
     );
@@ -212,7 +210,7 @@ export async function classifyKernel(baseUrl, imageUri) {
     try {
       const form = new FormData();
       form.append('image', { uri: imageUri, name: 'kernel.jpg', type: 'image/jpeg' });
-      form.append('preview', 'true');
+      form.append('preview', 'false');
 
       const res = await fetchWithTimeout(
         `${base}${ep}`,
