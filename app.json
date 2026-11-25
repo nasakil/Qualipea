@@ -9,7 +9,6 @@
     "backgroundColor": "#123d2b",
     "android": {
       "package": "com.qualipea.app",
-      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#123d2b"
@@ -57,7 +56,15 @@
           ]
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
     ],
     "extra": {
       "eas": {
