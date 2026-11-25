@@ -2,8 +2,8 @@ import {createContext,useContext} from 'react';
 import {Dimensions} from 'react-native';
 
 export const W=Dimensions.get('window').width;
-export const LT={bg:'#eef3ec',card:'#fff',ink:'#14261c',mute:'#667a6d',line:'#dbe3d6',g2:'#1f6a49'};
-export const DK={bg:'#0d1711',card:'#152119',ink:'#eaf2ea',mute:'#8fa597',line:'#24372b',g2:'#2f8a5f'};
+export const LT={bg:'#eef3ec',card:'#ffffff',ink:'#14261c',mute:'#667a6d',line:'#dbe3d6',g2:'#1f6a49',hero:['#1b6242','#0b2b1e']};
+export const DK={bg:'#131916',card:'#1b2420',ink:'#d7e2db',mute:'#8b9d92',line:'#283630',g2:'#42a376',hero:['#1a3d2d','#12291f']};
 export const Th=createContext(LT),useT=()=>useContext(Th);
 export const AnimCtx=createContext(true),useAnim=()=>useContext(AnimCtx);
 

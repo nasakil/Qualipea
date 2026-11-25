@@ -2,14 +2,15 @@ import React,{useState} from 'react';
 import {View,Text,Pressable,ScrollView} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {GR,GC,normGrade} from '../theme';
-import {DEFECT_CATALOG,GN} from '../data';
-import {Txt,Btn,Kernel} from '../components';
+import {DEFECT_CATALOG,GN,suggestDefects} from '../data';
+import {Txt,Btn,DefectKernel} from '../components';
 import {useApp} from '../AppContext';
 import {sfx} from '../sound';
 
 export default function DefectSelection(){
   const {T,dark,recScan,saveScanDefects,setScr,setSheet,close,anim}=useApp();
-  const initial=recScan?.defects||[];
+  const autoDetected=suggestDefects(recScan);
+  const initial=Array.isArray(recScan?.defects)?recScan.defects:autoDetected;
   const [selected,setSelected]=useState(initial);
 
   const toggle=(id)=>{
@@ -23,16 +24,16 @@ export default function DefectSelection(){
       node:(
         <View style={{width:'100%',alignItems:'center'}}>
           <View style={{
-            width:96,
-            height:96,
-            borderRadius:26,
-            backgroundColor:defect.color+'22',
+            width:104,
+            height:104,
+            borderRadius:28,
+            backgroundColor:dark?'#24241e':'#f3efe6',
             borderWidth:1,
             borderColor:defect.color+'55',
             alignItems:'center',
             justifyContent:'center',
           }}>
-            <Kernel g={defect.gradeHint} size={68} rot={-18}/>
+            <DefectKernel id={defect.id} size={82}/>
           </View>
           <Txt s={22} w="800" style={{marginTop:14,textAlign:'center'}}>{defect.name}</Txt>
           <Txt s={13.5} c={defect.color} w="700" style={{marginTop:4,textAlign:'center'}}>{defect.summary}</Txt>
@@ -103,21 +104,22 @@ export default function DefectSelection(){
 
         <View style={{flexDirection:'row',alignItems:'center',gap:8,marginTop:18}}>
           <View style={{paddingHorizontal:10,paddingVertical:4,borderRadius:99,backgroundColor:GC[g]+'24'}}>
-            <Text style={{color:GC[g],fontWeight:'800',fontSize:12}}>{GN[g][0]}</Text>
+            <Text style={{color:GC[g],fontFamily:'OpenRunde-Bold',fontSize:12}}>{GN[g][0]}</Text>
           </View>
           <Txt s={13} c={T.mute}>{selected.length} selected</Txt>
         </View>
 
         <Txt s={28} w="800" style={{marginTop:8,letterSpacing:-0.5}}>
-          Check defects seen on tray
+          Verify detected defects
         </Txt>
         <Txt s={14.5} c={T.mute} style={{marginTop:6,marginBottom:16,lineHeight:21}}>
-          Tick any visual defects you spot so QualiPea can explain the grade and give step-by-step handling advice. Tap the info icon for examples.
+          QualiPea pre-checked likely defects from your scan. Tap any item to recheck or adjust before viewing recommendations.
         </Txt>
 
         <View style={{gap:11}}>
           {DEFECT_CATALOG.map(d=>{
             const checked=selected.includes(d.id);
+            const isAuto=autoDetected.includes(d.id);
             return (
               <Pressable
                 key={d.id}
@@ -148,18 +150,27 @@ export default function DefectSelection(){
                 </View>
 
                 <View style={{
-                  width:46,
-                  height:46,
-                  borderRadius:15,
-                  backgroundColor:d.color+'20',
+                  width:50,
+                  height:50,
+                  borderRadius:16,
+                  backgroundColor:dark?'#23241f':'#f3efe6',
+                  borderWidth:1,
+                  borderColor:T.line,
                   alignItems:'center',
                   justifyContent:'center',
                 }}>
-                  <Ionicons name={d.icon} size={22} color={d.color}/>
+                  <DefectKernel id={d.id} size={42}/>
                 </View>
 
                 <View style={{flex:1}}>
-                  <Txt s={15.5} w="700">{d.name}</Txt>
+                  <View style={{flexDirection:'row',alignItems:'center',gap:7,flexWrap:'wrap'}}>
+                    <Txt s={15.5} w="700">{d.name}</Txt>
+                    {isAuto&&(
+                      <View style={{paddingHorizontal:7,paddingVertical:2,borderRadius:99,backgroundColor:T.g2+'22'}}>
+                        <Text style={{color:T.g2,fontFamily:'OpenRunde-Bold',fontSize:10.5}}>Auto</Text>
+                      </View>
+                    )}
+                  </View>
                   <Txt s={13} c={T.mute} style={{marginTop:2}}>{d.summary}</Txt>
                 </View>
 

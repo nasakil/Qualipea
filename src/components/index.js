@@ -1,4 +1,5 @@
 export * from './Kernel';
+export * from './DefectKernel';
 export * from './Card';
 export * from './Txt';
 export * from './Btn';

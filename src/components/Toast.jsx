@@ -40,7 +40,7 @@ export default function Toast(){
         transform:[{scale:sc}],
       }}
     >
-      <Text style={{color:'#fff',fontWeight:'700'}}>{msg}</Text>
+      <Text style={{color:'#fff',fontFamily:'OpenRunde-Bold'}}>{msg}</Text>
     </Animated.View>
   );
 }

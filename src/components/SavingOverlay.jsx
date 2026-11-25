@@ -47,7 +47,7 @@ export default function SavingOverlay(){
         transform:[{scale}],
       }}>
         <ActivityIndicator color="#fff" size="large"/>
-        <Text style={{color:'#fff',fontWeight:'700',fontSize:15}}>Saving scan…</Text>
+        <Text style={{color:'#fff',fontFamily:'OpenRunde-Bold',fontSize:15}}>Saving scan…</Text>
       </Animated.View>
     </Animated.View>
   );

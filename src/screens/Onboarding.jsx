@@ -116,7 +116,7 @@ export default function Onboarding(){
                 elevation:8,
               }}
             >
-              <Text style={{color:'#fff',fontWeight:'900',fontSize:22}}>{GS[x]}</Text>
+              <Text style={{color:'#fff',fontFamily:'OpenRunde-Bold',fontSize:22}}>{GS[x]}</Text>
             </View>
           ))}
         </View>
@@ -167,7 +167,7 @@ export default function Onboarding(){
           }}>
             <Kernel size={20} rot={-18}/>
           </View>
-          <Text style={{color:'#ffffff',fontSize:18,fontWeight:'800',letterSpacing:-0.3}}>
+          <Text style={{color:'#ffffff',fontSize:18,fontFamily:'OpenRunde-Bold',letterSpacing:-0.3}}>
             QualiPea
           </Text>
         </View>
@@ -186,7 +186,7 @@ export default function Onboarding(){
               opacity:pressed?0.75:1,
             })}
           >
-            <Text numberOfLines={1} style={{color:'#ffffff',fontSize:13,fontWeight:'700'}}>
+            <Text numberOfLines={1} style={{color:'#ffffff',fontSize:13,fontFamily:'OpenRunde-Bold'}}>
               Skip intro
             </Text>
           </Pressable>

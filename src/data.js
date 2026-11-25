@@ -114,6 +114,26 @@ export const DEFECT_CATALOG=[
 
 export const defectById=id=>DEFECT_CATALOG.find(d=>d.id===id)||null;
 
+/**
+ * Automatically infers likely defects from a scan's predicted class
+ * and probability distribution so DefectSelection starts pre-checked.
+ */
+export function suggestDefects(scan){
+  if(!scan)return [];
+  if(Array.isArray(scan.defects)&&scan.defects.length)return scan.defects;
+  const g=normGrade(scan.x||scan.g);
+  const probs=scan.p||{};
+  if(g==='Extra Class')return [];
+  if(g==='Class I'){
+    return ((probs['Class II']||0)+(probs['Defect']||0))>=0.14?['discolored']:[];
+  }
+  if(g==='Class II'){
+    return (probs['Defect']||0)>=0.15?['damaged','discolored']:['damaged','shriveled'];
+  }
+  // Defect class
+  return (probs['Class II']||0)>=0.15?['moldy','discolored']:['moldy','insect'];
+}
+
 export const REF_GUIDE=[
   {
     id:'Extra Class',

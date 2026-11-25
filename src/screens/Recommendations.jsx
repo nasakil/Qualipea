@@ -1,60 +1,12 @@
 import React,{useState} from 'react';
 import {View,Text,Pressable,ScrollView,TextInput,KeyboardAvoidingView,Platform} from 'react-native';
 import {LinearGradient} from 'expo-linear-gradient';
-import Svg,{Path,Circle,Line,Ellipse} from 'react-native-svg';
 import {Ionicons} from '@expo/vector-icons';
 import {GC,GS,GOLD,normGrade,pc} from '../theme';
 import {GN,ADV,PRICE_CONFIG,defectById,buildWhySummary} from '../data';
-import {Card,Txt,Btn,Kernel} from '../components';
+import {Card,Txt,Btn,Kernel,DefectKernel} from '../components';
 import {useApp} from '../AppContext';
 import {sfx} from '../sound';
-
-function DefectArt({id,size=48}){
-  return (
-    <Svg width={size} height={size} viewBox="0 0 64 64">
-      {id==='shriveled'?(
-        <>
-          <Path d="M14 34c2-11 10-15 18-13s16 3 18 12c2 9-7 14-18 12S12 43 14 34z" fill="#b77e39"/>
-          <Path d="M22 27c4 4 4 10 0 14M32 25c4 5 4 11 0 16M42 27c3 4 3 9 0 13" stroke="#6b4418" strokeWidth="2.2" fill="none" strokeLinecap="round"/>
-        </>
-      ):(
-        <>
-          <Ellipse cx="32" cy="34" rx="22" ry="15" transform="rotate(-14 32 34)" fill={id==='moldy'||id==='insect'?'#8f6331':'#c98e46'}/>
-          <Path d="M18 29c6-6 17-8 27-2" stroke="#fff5" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-        </>
-      )}
-
-      {id==='moldy'&&(
-        <>
-          <Circle cx="26" cy="32" r="6" fill="#4f8f5b" opacity="0.9"/>
-          <Circle cx="36" cy="37" r="7" fill="#3a6e44" opacity="0.9"/>
-          <Circle cx="32" cy="28" r="4" fill="#7ec489" opacity="0.85"/>
-        </>
-      )}
-
-      {id==='damaged'&&(
-        <Path d="M31 18 L27 31 L35 35 L30 49" stroke="#241608" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-      )}
-
-      {id==='discolored'&&(
-        <>
-          <Ellipse cx="38" cy="36" rx="10" ry="7" fill="#4b2912" opacity="0.82"/>
-          <Circle cx="24" cy="30" r="4.5" fill="#5e3416" opacity="0.72"/>
-        </>
-      )}
-
-      {id==='insect'&&(
-        <>
-          <Circle cx="25" cy="33" r="3.2" fill="#1e1207"/>
-          <Circle cx="37" cy="30" r="2.8" fill="#1e1207"/>
-          <Circle cx="34" cy="40" r="2.5" fill="#1e1207"/>
-          <Circle cx="42" cy="37" r="1.4" fill="#e6cfa3"/>
-          <Circle cx="29" cy="41" r="1.4" fill="#e6cfa3"/>
-        </>
-      )}
-    </Svg>
-  );
-}
 
 function ClassIllustration({grade}){
   const c=GC[grade];
@@ -84,7 +36,7 @@ function ClassIllustration({grade}){
         borderWidth:2,
         borderColor:'#0f3423',
       }}>
-        <Text style={{color:'#fff',fontSize:11,fontWeight:'900'}}>{GS[grade]}</Text>
+        <Text style={{color:'#fff',fontSize:11,fontFamily:'OpenRunde-Bold'}}>{GS[grade]}</Text>
       </View>
     </View>
   );
@@ -127,7 +79,7 @@ export default function Recommendations(){
     >
       <ScrollView contentContainerStyle={{paddingBottom:125}} showsVerticalScrollIndicator={false}>
         <LinearGradient
-          colors={['#17573b','#0b2b1e']}
+          colors={T.hero}
           style={{padding:20,paddingTop:56,paddingBottom:24,borderBottomLeftRadius:32,borderBottomRightRadius:32}}
         >
           <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center'}}>
@@ -145,7 +97,7 @@ export default function Recommendations(){
             >
               <Ionicons name="chevron-back" size={24} color="#fff"/>
             </Pressable>
-            <Text style={{color:'#fff',fontWeight:'800',fontSize:17}}>Guide &amp; Value</Text>
+            <Text style={{color:'#fff',fontFamily:'OpenRunde-Bold',fontSize:17}}>Guide &amp; Value</Text>
             <Pressable
               onPress={()=>{sfx('tap');setScr('defects',-1)}}
               style={({pressed})=>({
@@ -156,22 +108,22 @@ export default function Recommendations(){
                 opacity:pressed?0.75:1,
               })}
             >
-              <Text style={{color:'#fff',fontWeight:'700',fontSize:12.5}}>Edit defects</Text>
+              <Text style={{color:'#fff',fontFamily:'OpenRunde-Bold',fontSize:12.5}}>Edit defects</Text>
             </Pressable>
           </View>
 
           <View style={{flexDirection:'row',alignItems:'center',gap:16,marginTop:20}}>
             <ClassIllustration grade={g}/>
             <View style={{flex:1}}>
-              <Text style={{color:'#fff',fontSize:24,fontWeight:'800'}}>{GN[g][0]}</Text>
+              <Text style={{color:'#fff',fontSize:24,fontFamily:'OpenRunde-Bold'}}>{GN[g][0]}</Text>
               <Text style={{color:'#ffffffc4',fontSize:13.5,marginTop:3}}>{why.headline}</Text>
               <View style={{flexDirection:'row',gap:8,marginTop:8}}>
                 <View style={{paddingHorizontal:10,paddingVertical:4,borderRadius:99,backgroundColor:'rgba(255,255,255,0.14)'}}>
-                  <Text style={{color:'#fff',fontSize:11.5,fontWeight:'700'}}>{pc(recScan.c)}% match</Text>
+                  <Text style={{color:'#fff',fontSize:11.5,fontFamily:'OpenRunde-Bold'}}>{pc(recScan.c)}% match</Text>
                 </View>
                 {selectedDefects.length>0&&(
                   <View style={{paddingHorizontal:10,paddingVertical:4,borderRadius:99,backgroundColor:GOLD+'33'}}>
-                    <Text style={{color:'#f7d688',fontSize:11.5,fontWeight:'700'}}>
+                    <Text style={{color:'#f7d688',fontSize:11.5,fontFamily:'OpenRunde-Bold'}}>
                       {selectedDefects.length} defect{selectedDefects.length>1?'s':''}
                     </Text>
                   </View>
@@ -213,7 +165,7 @@ export default function Recommendations(){
             <View style={{gap:7}}>
               {why.factors.slice(0,3).map((f,idx)=>(
                 <View key={idx} style={{flexDirection:'row',gap:8}}>
-                  <Text style={{color:c,fontWeight:'900'}}>•</Text>
+                  <Text style={{color:c,fontFamily:'OpenRunde-Bold'}}>•</Text>
                   <Txt s={13.5} c={idx===0?T.ink:T.mute} style={{flex:1,lineHeight:19}}>{f}</Txt>
                 </View>
               ))}
@@ -243,7 +195,7 @@ export default function Recommendations(){
                           alignItems:'center',
                           justifyContent:'center',
                         }}>
-                          <DefectArt id={d.id} size={46}/>
+                          <DefectKernel id={d.id} size={46}/>
                         </View>
                         <View style={{flex:1}}>
                           <Txt s={15.5} w="800">{d.name}</Txt>
@@ -271,7 +223,7 @@ export default function Recommendations(){
                                 alignItems:'center',
                                 justifyContent:'center',
                               }}>
-                                <Text style={{color:d.color,fontWeight:'800',fontSize:11.5}}>{i+1}</Text>
+                                <Text style={{color:d.color,fontFamily:'OpenRunde-Bold',fontSize:11.5}}>{i+1}</Text>
                               </View>
                               <Txt s={13.5} w="500" style={{flex:1}}>{step}</Txt>
                             </View>
@@ -310,7 +262,7 @@ export default function Recommendations(){
                 <Txt s={16} w="800">Batch value</Txt>
               </View>
               <View style={{paddingHorizontal:10,paddingVertical:4,borderRadius:99,backgroundColor:T.g2+'22'}}>
-                <Text style={{color:T.g2,fontWeight:'800',fontSize:11.5}}>₱{basePrice.toFixed(0)}/kg · PSA</Text>
+                <Text style={{color:T.g2,fontFamily:'OpenRunde-Bold',fontSize:11.5}}>₱{basePrice.toFixed(0)}/kg · PSA</Text>
               </View>
             </View>
 
@@ -335,7 +287,7 @@ export default function Recommendations(){
                     color:T.ink,
                     paddingVertical:12,
                     fontSize:16,
-                    fontWeight:'700',
+                    fontFamily:'OpenRunde-Bold',
                   }}
                 />
                 <Txt s={14} w="700" c={T.mute}>kg</Txt>
@@ -360,7 +312,7 @@ export default function Recommendations(){
                     flex:1,
                     textAlign:'right',
                     fontSize:22,
-                    fontWeight:'800',
+                    fontFamily:'OpenRunde-Bold',
                     color:validKg>0?T.g2:T.mute,
                   }}
                 >

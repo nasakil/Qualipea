@@ -57,7 +57,7 @@ export default function Dashboard(){
       <Top title="Dashboard"/>
 
       <LinearGradient
-        colors={['#1b6242','#0b2b1e']}
+        colors={T.hero}
         start={{x:0,y:0}}
         end={{x:1,y:1}}
         style={{borderRadius:30,padding:22}}
@@ -93,7 +93,7 @@ export default function Dashboard(){
             <View key={x} style={{flexDirection:'row',alignItems:'center',gap:5}}>
               <View style={{width:8,height:8,borderRadius:4,backgroundColor:GC[x]}}/>
               <Text style={{color:'#ffffffd8',fontSize:12}}>
-                {x} <Text style={{fontWeight:'800',color:'#fff'}}>{c[x]}</Text>
+                {x} <Text style={{fontFamily:'OpenRunde-Bold',color:'#fff'}}>{c[x]}</Text>
               </Text>
             </View>
           ))}
@@ -134,7 +134,7 @@ export default function Dashboard(){
               <View key={i} style={{flex:1,alignItems:'center',justifyContent:'flex-end',height:'100%'}}>
                 <Text style={{
                   fontSize:11,
-                  fontWeight:'700',
+                  fontFamily:'OpenRunde-Bold',
                   color:d?(isToday?GOLD:T.ink):'transparent',
                   marginBottom:4,
                 }}>
@@ -177,7 +177,7 @@ export default function Dashboard(){
               alignItems:'center',
               justifyContent:'center',
             }}>
-              <Text style={{color:GC[x],fontWeight:'800',fontSize:11.5}}>{GS[x]}</Text>
+              <Text style={{color:GC[x],fontFamily:'OpenRunde-Bold',fontSize:11.5}}>{GS[x]}</Text>
             </View>
             <Txt s={13} w="600" style={{width:74}}>{x}</Txt>
             <View style={{flex:1}}><Bar v={av(cf[x])} c={GC[x]} h={8}/></View>

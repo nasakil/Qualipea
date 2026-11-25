@@ -162,7 +162,7 @@ export default function Splash(){
         }}>
           <View style={{flexDirection:'row',alignItems:'center',gap:8}}>
             <View style={{width:8,height:8,borderRadius:4,backgroundColor:GC.A}}/>
-            <Text style={{color:'#eaf4ee',fontSize:14,fontWeight:'800',letterSpacing:1.6}}>
+            <Text style={{color:'#eaf4ee',fontSize:14,fontFamily:'OpenRunde-Bold',letterSpacing:1.6}}>
               QUALIPEA
             </Text>
           </View>
@@ -174,7 +174,7 @@ export default function Splash(){
             borderWidth:1,
             borderColor:'rgba(255,255,255,0.1)',
           }}>
-            <Text style={{color:'#9ec0ac',fontSize:11.5,fontWeight:'700'}}>v1.0</Text>
+            <Text style={{color:'#9ec0ac',fontSize:11.5,fontFamily:'OpenRunde-Bold'}}>v1.0</Text>
           </View>
         </View>
 

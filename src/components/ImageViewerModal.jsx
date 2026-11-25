@@ -30,7 +30,7 @@ export default function ImageViewerModal(){
           justifyContent:'space-between',
           alignItems:'center',
         }}>
-          <Text style={{color:'#cfe3d6',fontSize:13,fontWeight:'700'}}>
+          <Text style={{color:'#cfe3d6',fontSize:13,fontFamily:'OpenRunde-Bold'}}>
             {zoomed?'Tap photo to reset zoom':'Tap photo to zoom in'}
           </Text>
           <Pressable
