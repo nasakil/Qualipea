@@ -28,6 +28,7 @@ export function AppProvider({ children }) {
   const [oi, setOi] = useState(0);
   const [demo, setDemo] = useState(true);
   const [dev, setDev] = useState(0);
+  const [piInfo, setPiInfo] = useState(null);
   const [hd, setHd] = useState(SEED);
   const [hr, setHr] = useState([]);
   const [cur, setCur] = useState(null);
@@ -186,19 +187,29 @@ export function AppProvider({ children }) {
     const res = await checkPiHealth(targetUrl);
     if (!res.ok) {
       setDev(0);
+      setPiInfo(null);
       sfx('err');
       setSheet({
         ic: 'alert-circle-outline',
         bad: 1,
         title: 'Can’t reach the Pi 5',
-        body: `Could not connect to ${res.url} (${res.error}). Make sure you’re on the same Wi-Fi, or scan with your phone camera.`,
+        body: `Could not connect to ${res.url} (${res.error}). You can still test the camera preview, or switch to Demo mode for simulated grading.`,
         btns: [
-          ['Phone camera', 'gold', () => { close(); setScr('prep', 1) }],
+          ['Switch to Demo', 'gold', () => { close(); setDemo(true); setDev(1); toast('Demo mode enabled'); }],
           ['Retry', 'sec', () => { close(); connect(cb) }],
         ],
       });
       return;
     }
+
+    const d = res.data || {};
+    setPiInfo({
+      online: true,
+      cameraReady: d.camera_ready !== false,
+      cameraBackend: d.camera_backend || 'picamera2',
+      classesCount: d.classes ? Object.keys(d.classes).length : 4,
+      minKernels: d.min_kernels || 5,
+    });
 
     setSheet(prev => prev && prev.load ? { ...prev, stepIdx: 2 } : prev);
     sfx('step', 1);
@@ -213,6 +224,25 @@ export function AppProvider({ children }) {
         cb && cb();
       }, 350);
     }, 450);
+  };
+
+  const refreshPiStatus = async () => {
+    if (demo) return;
+    const res = await checkPiHealth(normalizeUrl(piUrl));
+    if (res.ok) {
+      const d = res.data || {};
+      setDev(1);
+      setPiInfo({
+        online: true,
+        cameraReady: d.camera_ready !== false,
+        cameraBackend: d.camera_backend || 'picamera2',
+        classesCount: d.classes ? Object.keys(d.classes).length : 4,
+        minKernels: d.min_kernels || 5,
+      });
+    } else {
+      setDev(0);
+      setPiInfo(null);
+    }
   };
 
   const completeOnboarding = () => {
@@ -322,8 +352,21 @@ export function AppProvider({ children }) {
         defectsConfirmed: true,
       };
     } else {
-      finalCur = makeFallbackResult(photo || null);
-      toast(piRes.error || 'Pi 5 server offline · using local estimate');
+      setDev(0);
+      setPiInfo(null);
+      sfx('err');
+      setScr('cam', -1);
+      setSheet({
+        ic: 'alert-circle-outline',
+        bad: 1,
+        title: 'Cannot grade without Pi 5',
+        body: `${piRes.error || 'Raspberry Pi 5 server & YOLO11n-cls model are unreachable.'}\n\nConnect your Pi 5 on the same Wi-Fi, or switch to Demo mode to test offline.`,
+        btns: [
+          ['Use Demo mode', 'gold', () => { close(); setDemo(true); setDev(1); toast('Demo mode enabled'); }],
+          ['Edit Pi IP', 'sec', () => { close(); goTab('set'); }],
+        ],
+      });
+      return;
     }
 
     setCur(finalCur);
@@ -609,7 +652,7 @@ export function AppProvider({ children }) {
     openRecommendations, openDefectEditor, saveScanDefects, saveScanKg, confirmDelete,
     sys, dark, setDark, T,
     scr, setScr, goTab, navDir,
-    oi, setOi, demo, setDemo, dev, setDev,
+    oi, setOi, demo, setDemo, dev, setDev, piInfo, refreshPiStatus,
     hd, setHd, hr, setHr, cur, setCur, cap, setCap, photo, setPhoto,
     tab, setTab, pd, setPd, ps, setPs, filt, setFilt,
     sheet, setSheet, msg, setMsg, dg, setDg, saving, setSaving,
