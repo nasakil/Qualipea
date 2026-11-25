@@ -7,15 +7,15 @@ import { useApp } from '../AppContext';
 import { sfx } from '../sound';
 
 const CHAMBER_STEPS = [
-  ['cube-outline', 'Place one kernel', 'Center it on the matte pad. Keep it apart from others.'],
+  ['cube-outline', 'Spread kernels on tray', 'Place 5+ kernels on the tray, spaced apart so they don’t touch.'],
   ['flash-outline', 'Close the lid', 'The LED ring turns on and shuts out room light.'],
-  ['scan-outline', 'Hold still', 'Don’t move the chamber while the camera captures.'],
+  ['scan-outline', 'Hold still', 'Don’t move the chamber while the RPi camera captures.'],
 ];
 
 const CAMERA_STEPS = [
-  ['cube-outline', 'Isolate one kernel', 'Place a single kernel on a plain, dark or matte surface.'],
-  ['sunny-outline', 'Use even lighting', 'Avoid harsh shadows or turn on the camera torch inside the scanner.'],
-  ['scan-outline', 'Center in the frame', 'Hold your phone steady about 12–15 cm above the kernel.'],
+  ['cube-outline', 'Spread kernels on tray', 'Place 5+ kernels on a plain tray, spaced apart so they don’t touch.'],
+  ['sunny-outline', 'Use even lighting', 'Avoid harsh shadows so every kernel stands out clearly.'],
+  ['scan-outline', 'Fit whole tray in frame', 'Keep the entire tray inside the frame with even lighting.'],
 ];
 
 export default function ScanPrep() {
@@ -58,7 +58,7 @@ export default function ScanPrep() {
       </Pressable>
 
       <Txt s={30} w="800" style={{ marginTop: 18, letterSpacing: -0.5 }}>
-        {demo ? 'Set up the chamber' : 'Prepare your kernel'}
+        {demo ? 'Set up the chamber' : 'Prepare your tray'}
       </Txt>
       <Txt s={15} c={T.mute} style={{ marginTop: 6, marginBottom: 10, lineHeight: 21 }}>
         {demo

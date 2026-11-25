@@ -73,8 +73,8 @@ export default function Processing(){
           )}
         </View>
       </View>
-      <Txt s={26} w="800" style={{marginTop:24}}>Grading your kernel</Txt>
-      <Txt c={T.mute} style={{marginTop:4}}>YOLO11-cls is reading the image</Txt>
+      <Txt s={26} w="800" style={{marginTop:24}}>Grading your tray</Txt>
+      <Txt c={T.mute} style={{marginTop:4}}>YOLO11n-cls is classifying each kernel</Txt>
       <View style={{
         marginTop:26,
         gap:14,

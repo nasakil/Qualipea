@@ -174,7 +174,7 @@ export default function Home(){
           >
             <Text style={{color:'#fff',fontSize:26,fontFamily:'OpenRunde-Bold',maxWidth:175}}>Start a new scan</Text>
             <Text style={{color:'#ffffffb8',fontFamily:'OpenRunde-Regular',marginVertical:9,maxWidth:195,lineHeight:20}}>
-              {demo?'One kernel per scan, lid closed, LED on.':'Stream live from RPi Cam or switch to Phone Cam.'}
+              {demo?'Spread 5+ kernels on the tray, lid closed, LED on.':'Spread 5+ kernels on the tray for RPi Cam group grading.'}
             </Text>
             <View style={{
               flexDirection:'row',
@@ -187,7 +187,7 @@ export default function Home(){
               gap:8,
               marginTop:4,
             }}>
-              <Text style={{fontFamily:'OpenRunde-Bold',color:'#2a1d04'}}>Scan kernel</Text>
+              <Text style={{fontFamily:'OpenRunde-Bold',color:'#2a1d04'}}>Scan tray</Text>
               <Ionicons name="arrow-forward" size={18} color="#2a1d04"/>
             </View>
             <Animated.View style={{position:'absolute',right:-18,bottom:-12,transform:[{translateY:floatY}]}}>
@@ -308,7 +308,7 @@ export default function Home(){
             </View>
             <Txt s={16} w="800">No scans yet</Txt>
             <Txt s={13} c={T.mute} style={{textAlign:'center',lineHeight:19}}>
-              Tap here to grade your first Spanish peanut kernel.
+              Tap here to grade your first Spanish peanut tray.
             </Txt>
           </Pressable>
         )}
