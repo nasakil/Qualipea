@@ -370,20 +370,22 @@ export default function Scanner() {
               }}
             />
 
-            <View pointerEvents="none" style={{ width: 220, height: 220, alignItems: 'center', justifyContent: 'center' }}>
-              <Brk s={38} c={cap ? (piQuality && !piQuality.ready ? GOLD : GC.A) : GOLD} />
-              {demo && <Kernel g={demoSim === 'auto' || demoSim === 'low' ? 'Class II' : demoSim} size={136} />}
-              {!cap && anim && !(isRpi && streamErr) && (
-                <Animated.View style={{
-                  position: 'absolute',
-                  left: 6,
-                  right: 6,
-                  height: 3,
-                  backgroundColor: GOLD,
-                  transform: [{ translateY: scan.interpolate({ inputRange: [0, 1], outputRange: [-100, 100] }) }],
-                }} />
-              )}
-            </View>
+            {!(isRpi && !cap && streamErr) && (
+              <View pointerEvents="none" style={{ width: 220, height: 220, alignItems: 'center', justifyContent: 'center' }}>
+                <Brk s={38} c={cap ? (piQuality && !piQuality.ready ? GOLD : GC.A) : GOLD} />
+                {demo && <Kernel g={demoSim === 'auto' || demoSim === 'low' ? 'Class II' : demoSim} size={136} />}
+                {!cap && anim && (
+                  <Animated.View style={{
+                    position: 'absolute',
+                    left: 6,
+                    right: 6,
+                    height: 3,
+                    backgroundColor: GOLD,
+                    transform: [{ translateY: scan.interpolate({ inputRange: [0, 1], outputRange: [-100, 100] }) }],
+                  }} />
+                )}
+              </View>
+            )}
 
             <View style={{ position: 'absolute', top: 16, backgroundColor: '#000a', paddingHorizontal: 13, paddingVertical: 6, borderRadius: 99 }}>
               <Text style={{ color: '#fff', fontFamily: 'OpenRunde-Bold', fontSize: 12.5 }}>

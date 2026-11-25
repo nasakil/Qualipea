@@ -3,9 +3,11 @@ import { GRADES, normGrade } from './theme';
 export const DEFAULT_PI_URL = 'http://192.168.137.31:8000';
 
 export function normalizeUrl(raw) {
-  const trimmed = (raw || '').trim().replace(/\/+$/, '');
+  let trimmed = (raw || '').trim().replace(/\/+$/, '');
   if (!trimmed) return DEFAULT_PI_URL;
-  return /^https?:\/\//i.test(trimmed) ? trimmed : `http://${trimmed}`;
+  if (!/^https?:\/\//i.test(trimmed)) trimmed = `http://${trimmed}`;
+  // Strip accidental trailing route paths if user pasted e.g. http://192.168.137.31:8000/live
+  return trimmed.replace(/\/(live|stream|video|status|health|capture|analyze|grade|predict|scan|result)(\/.*)?$/i, '');
 }
 
 export function piLiveUrl(baseUrl, nonce = Date.now()) {
