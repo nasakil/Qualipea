@@ -16,7 +16,7 @@ const TEAM_MEMBERS = [
 ];
 
 export default function Settings() {
-  const { snd, toggleSnd, anim, toggleAnim, piUrl, setPiUrl, skipPrep, setSkipPrep, dark, setDark, T, demo, dev, dg, connect, toggleDemo, askExit, runDiag, setSheet, close } = useApp();
+  const { snd, toggleSnd, anim, toggleAnim, piUrl, setPiUrl, skipPrep, setSkipPrep, dark, setDark, T, demo, dev, dg, connect, toggleDemo, askExit, runDiag, setSheet, close, setOi, setScr } = useApp();
   const [showSpecs, setShowSpecs] = useState(false);
 
   const openTeamSheet = () => {
@@ -267,6 +267,30 @@ export default function Settings() {
             ))}
           </View>
         )}
+      </Card>
+
+      <Card style={{ marginTop: 14, borderWidth: 1, borderColor: T.line, padding: 0, overflow: 'hidden' }}>
+        <Pressable
+          onPress={() => { sfx('tap'); setOi(0); setScr('onb', 1); }}
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: 16,
+            opacity: pressed ? 0.8 : 1,
+          })}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+            <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: T.g2 + '22', alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="sparkles-outline" size={20} color={T.g2} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Txt s={15.5} w="700">Replay intro</Txt>
+              <Txt s={12.5} c={T.mute}>View the onboarding walkthrough again</Txt>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={T.mute} />
+        </Pressable>
       </Card>
 
       <View style={{ flexDirection: 'row', marginTop: 14 }}>
