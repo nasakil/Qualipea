@@ -4,6 +4,7 @@ import {GC,GS,normGrade} from '../theme';
 import {GN} from '../data';
 import {Kernel,Txt,Chip,Ring} from '../components';
 import {useApp} from '../AppContext';
+import {formatScanTime} from '../storage';
 import {sfx} from '../sound';
 
 export default function Row({h,i}){
@@ -12,6 +13,8 @@ export default function Row({h,i}){
   const badgeKey=h.x?normGrade(h.x):g;
   const scanNum=String(Math.max(1,(hist?.length||1)-i)).padStart(2,'0');
   const defectCount=Array.isArray(h.defects)?h.defects.length:0;
+  const thumbUri=h.annotatedImg||h.img||h.originalImg||null;
+  const timeLabel=formatScanTime(h);
   return (
     <Pressable
       onPress={()=>{sfx('tap');detail(i)}}
@@ -45,8 +48,8 @@ export default function Row({h,i}){
           justifyContent:'center',
           overflow:'hidden',
         }}>
-          {h.img?(
-            <Image source={{uri:h.img}} style={{width:'100%',height:'100%'}} resizeMode="cover"/>
+          {thumbUri?(
+            <Image source={{uri:thumbUri}} style={{width:'100%',height:'100%'}} resizeMode="cover"/>
           ):(
             <Kernel g={g} size={46} rot={-20}/>
           )}
@@ -75,8 +78,9 @@ export default function Row({h,i}){
         </View>
         <Txt s={12.5} c={T.mute}>{GN[g][1]}</Txt>
         <View style={{flexDirection:'row',flexWrap:'wrap',gap:6,marginTop:6,alignItems:'center'}}>
-          <Txt s={12} c={T.mute}>{h.tm}</Txt>
+          <Txt s={12} c={T.mute}>{timeLabel}</Txt>
           {h.r?<Chip t="Review" c={GC.B}/>:<Chip t="Confident" c={GC.A}/>}
+          {typeof h.total==='number'&&<Chip t={`${h.total} pcs`} c={T.g2}/>}
           {defectCount>0&&<Chip t={`${defectCount} ${defectCount===1?'defect':'defects'}`} c={GC.C}/>}
           {!!h.kg&&<Chip t={`${h.kg} kg`} c={T.g2}/>}
         </View>

@@ -1,10 +1,10 @@
-import React, { useRef, useState } from 'react';
-import { View, Text, Pressable, Animated, Image, ActivityIndicator, Platform } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, Pressable, Animated, Image, ActivityIndicator, Platform, StyleSheet, AppState } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { GOLD, GC } from '../theme';
-import { piLiveUrl, piStreamUrl, captureFromPi } from '../api';
+import { normalizeUrl, piLiveUrl, piStreamUrl, buildStreamHtml, captureFromPi } from '../api';
 import { Kernel, Btn, Brk } from '../components';
 import { useApp } from '../AppContext';
 import { sfx } from '../sound';
@@ -18,6 +18,73 @@ const SIM_PRESETS = [
   ['low', 'Low?', GOLD],
 ];
 
+const CONNECT_TIMEOUT_MS = 8500;
+const RECONNECT_DELAYS_MS = [2000, 3500, 5000, 8000];
+
+const LIVE_PAGE_BRIDGE_JS = `
+(function() {
+  try {
+    document.documentElement.style.margin = '0';
+    document.documentElement.style.padding = '0';
+    document.documentElement.style.height = '100%';
+    document.documentElement.style.overflow = 'hidden';
+    document.documentElement.style.background = '#111613';
+    if (document.body) {
+      document.body.style.margin = '0';
+      document.body.style.padding = '0';
+      document.body.style.height = '100%';
+      document.body.style.overflow = 'hidden';
+      document.body.style.background = '#111613';
+    }
+    var send = function(type, detail) {
+      if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: type, detail: detail || '' }));
+      }
+    };
+    var img = document.querySelector('img');
+    window.__stopQualiPeaStream = function() {
+      try {
+        var imgs = document.querySelectorAll('img');
+        for (var i = 0; i < imgs.length; i++) {
+          imgs[i].onload = null;
+          imgs[i].onerror = null;
+          imgs[i].removeAttribute('src');
+          imgs[i].src = '';
+        }
+      } catch (_) {}
+    };
+    if (img) {
+      img.style.width = '100vw';
+      img.style.height = '100vh';
+      img.style.objectFit = 'cover';
+      img.style.display = 'block';
+      var notified = false;
+      var notifyConnected = function() {
+        if (notified) return;
+        notified = true;
+        send('connected', img.naturalWidth + 'x' + img.naturalHeight);
+      };
+      if (img.complete && img.naturalWidth > 0) {
+        notifyConnected();
+      } else {
+        img.addEventListener('load', notifyConnected);
+        img.addEventListener('error', function() { send('error', 'live_img_failed'); });
+        setTimeout(function() {
+          if (!notified && img.complete && img.naturalWidth > 0) notifyConnected();
+        }, 500);
+      }
+    } else {
+      send('error', 'live_no_stream_img');
+    }
+  } catch (e) {
+    if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'error', detail: 'bridge_exception' }));
+    }
+  }
+})();
+true;
+`;
+
 export default function Scanner() {
   const { demo, piUrl, setScr, goTab, cap, setCap, photo, setPhoto, scan, analyze, toast, anim, demoSim, setDemoSim } = useApp();
   const [permission, requestPermission] = useCameraPermissions();
@@ -25,16 +92,163 @@ export default function Scanner() {
   const [torch, setTorch] = useState(false);
   const [camSource, setCamSource] = useState('pi'); // 'pi' (RPi Cam default) or 'phone'
   const [streamKey, setStreamKey] = useState(() => Date.now());
-  const [streamErr, setStreamErr] = useState(false);
+  const [streamMode, setStreamMode] = useState('mjpeg'); // 'mjpeg' (/stream in controlled HTML) -> fallback 'live' (/live)
+  const [streamState, setStreamState] = useState('connecting'); // 'connecting' | 'connected' | 'reconnecting' | 'error'
+  const [streamErrorMsg, setStreamErrorMsg] = useState('');
+  const [retryCount, setRetryCount] = useState(0);
+  const [isAppActive, setIsAppActive] = useState(() => AppState.currentState === 'active');
   const [piCaptureId, setPiCaptureId] = useState(null);
   const [piQuality, setPiQuality] = useState(null);
+
   const camRef = useRef(null);
+  const webViewRef = useRef(null);
+  const connectTimerRef = useRef(null);
+  const reconnectTimerRef = useRef(null);
+  const streamStateRef = useRef(streamState);
+  const streamModeRef = useRef(streamMode);
+  const retryCountRef = useRef(retryCount);
   const flash = useRef(new Animated.Value(0)).current;
+
+  streamStateRef.current = streamState;
+  streamModeRef.current = streamMode;
+  retryCountRef.current = retryCount;
 
   const isRpi = !demo && camSource === 'pi';
   const isPhone = !demo && camSource === 'phone';
-  const liveSrc = piLiveUrl(piUrl, streamKey);
-  const streamSrc = piStreamUrl(piUrl, streamKey);
+  const shouldStream = isRpi && !cap && isAppActive;
+
+  const normalizedPi = useMemo(() => normalizeUrl(piUrl), [piUrl]);
+  const liveSrc = useMemo(() => piLiveUrl(normalizedPi, streamKey), [normalizedPi, streamKey]);
+  const streamSrc = useMemo(() => piStreamUrl(normalizedPi, streamKey), [normalizedPi, streamKey]);
+  const streamHtml = useMemo(() => buildStreamHtml(streamSrc), [streamSrc]);
+
+  const clearTimers = useCallback(() => {
+    if (connectTimerRef.current) {
+      clearTimeout(connectTimerRef.current);
+      connectTimerRef.current = null;
+    }
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+  }, []);
+
+  const stopWebViewStream = useCallback(() => {
+    try {
+      webViewRef.current?.injectJavaScript('window.__stopQualiPeaStream && window.__stopQualiPeaStream(); true;');
+      webViewRef.current?.stopLoading?.();
+    } catch (_) { }
+  }, []);
+
+  const startFreshStream = useCallback((mode = 'mjpeg', nextRetryCount = 0) => {
+    clearTimers();
+    stopWebViewStream();
+    setStreamMode(mode);
+    setRetryCount(nextRetryCount);
+    setStreamErrorMsg('');
+    setStreamState(nextRetryCount > 0 ? 'reconnecting' : 'connecting');
+    setStreamKey(Date.now() + Math.floor(Math.random() * 1000));
+  }, [clearTimers, stopWebViewStream]);
+
+  const scheduleReconnect = useCallback((reason) => {
+    clearTimers();
+    stopWebViewStream();
+
+    // If primary /stream failed on first attempt before ever connecting, immediately try /live fallback once
+    if (Platform.OS !== 'web' && streamModeRef.current === 'mjpeg' && retryCountRef.current === 0) {
+      setStreamMode('live');
+      setStreamState('connecting');
+      setStreamErrorMsg('');
+      setStreamKey(Date.now() + Math.floor(Math.random() * 1000));
+      return;
+    }
+
+    const nextRetry = retryCountRef.current + 1;
+    const delay = RECONNECT_DELAYS_MS[Math.min(nextRetry - 1, RECONNECT_DELAYS_MS.length - 1)];
+    setRetryCount(nextRetry);
+    setStreamErrorMsg(reason || 'Camera stream disconnected');
+    setStreamState(nextRetry >= 2 ? 'error' : 'reconnecting');
+
+    reconnectTimerRef.current = setTimeout(() => {
+      reconnectTimerRef.current = null;
+      setStreamMode('mjpeg');
+      setStreamState('reconnecting');
+      setStreamKey(Date.now() + Math.floor(Math.random() * 1000));
+    }, delay);
+  }, [clearTimers, stopWebViewStream]);
+
+  // Pause RPi stream when app backgrounds and restore when returning to foreground
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      const active = nextState === 'active';
+      setIsAppActive(active);
+      if (!active) {
+        clearTimers();
+        stopWebViewStream();
+      }
+    });
+    return () => sub.remove();
+  }, [clearTimers, stopWebViewStream]);
+
+  // Reset stream cleanly whenever Pi URL or camera source changes
+  useEffect(() => {
+    if (shouldStream) {
+      startFreshStream('mjpeg', 0);
+    } else {
+      clearTimers();
+      stopWebViewStream();
+    }
+    return () => {
+      clearTimers();
+      stopWebViewStream();
+    };
+  }, [shouldStream, normalizedPi, clearTimers, stopWebViewStream, startFreshStream]);
+
+  // Guard against hung TCP connections / stalled initial frames
+  useEffect(() => {
+    if (!shouldStream) return;
+    if (streamState !== 'connecting' && streamState !== 'reconnecting') return;
+    if (connectTimerRef.current) clearTimeout(connectTimerRef.current);
+
+    connectTimerRef.current = setTimeout(() => {
+      connectTimerRef.current = null;
+      if (streamStateRef.current !== 'connected') {
+        scheduleReconnect('Timed out waiting for camera frames');
+      }
+    }, CONNECT_TIMEOUT_MS);
+
+    return () => {
+      if (connectTimerRef.current) {
+        clearTimeout(connectTimerRef.current);
+        connectTimerRef.current = null;
+      }
+    };
+  }, [shouldStream, streamKey, streamState, scheduleReconnect]);
+
+  const handleStreamConnected = useCallback(() => {
+    if (connectTimerRef.current) {
+      clearTimeout(connectTimerRef.current);
+      connectTimerRef.current = null;
+    }
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+    setRetryCount(0);
+    setStreamErrorMsg('');
+    setStreamState('connected');
+  }, []);
+
+  const handleWebViewMessage = useCallback((event) => {
+    try {
+      const data = JSON.parse(event?.nativeEvent?.data || '{}');
+      if (data.type === 'connected') {
+        handleStreamConnected();
+      } else if (data.type === 'error') {
+        scheduleReconnect('Unable to load live stream from Pi 5');
+      }
+    } catch (_) { }
+  }, [handleStreamConnected, scheduleReconnect]);
 
   const triggerFlash = () => {
     if (!anim) return;
@@ -44,8 +258,7 @@ export default function Scanner() {
 
   const refreshStream = () => {
     sfx('tap');
-    setStreamErr(false);
-    setStreamKey(Date.now());
+    startFreshStream('mjpeg', 0);
   };
 
   const handleCapture = async () => {
@@ -62,6 +275,8 @@ export default function Scanner() {
         setTaking(true);
         const res = await captureFromPi(piUrl);
         if (res.ok) {
+          clearTimers();
+          stopWebViewStream();
           setPiCaptureId(res.captureId);
           setPiQuality(res.quality);
           setPhoto(res.imageUrl);
@@ -102,13 +317,11 @@ export default function Scanner() {
     setPiCaptureId(null);
     setPiQuality(null);
     setCap(false);
-    if (isRpi) {
-      setStreamErr(false);
-      setStreamKey(Date.now());
-    }
   };
 
   const needsPermission = isPhone && (!permission || !permission.granted);
+  const showStreamErrorOverlay = isRpi && !cap && streamState === 'error';
+  const showStreamLoadingOverlay = isRpi && !cap && (streamState === 'connecting' || streamState === 'reconnecting');
 
   const qualityLabel = (() => {
     if (cap && isRpi && piQuality) {
@@ -121,15 +334,27 @@ export default function Scanner() {
     }
     if (cap) return '✓ Sharp   ✓ Centered   ✓ Ready to grade';
     if (demo) return 'LED 100%   ·   Focus locked   ·   Lid closed';
-    if (isRpi) return 'Tap shutter to capture tray on Raspberry Pi 5';
+    if (isRpi) {
+      if (streamState === 'connected') return 'Live feed active · Tap shutter to capture tray';
+      if (streamState === 'reconnecting') return 'Reconnecting to Raspberry Pi 5 camera…';
+      if (streamState === 'error') return 'Camera preview offline · Tap Retry or capture anyway';
+      return 'Connecting to Raspberry Pi 5 camera…';
+    }
     return 'Center tray or kernel inside the frame';
   })();
+
+  const piHostLabel = normalizedPi.replace(/^https?:\/\//, '');
 
   return (
     <View style={{ flex: 1, backgroundColor: '#0a0f0c', paddingTop: 56 }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 18, alignItems: 'center' }}>
         <Pressable
-          onPress={() => { sfx('tap'); setScr('home', -1); }}
+          onPress={() => {
+            sfx('tap');
+            clearTimers();
+            stopWebViewStream();
+            setScr('home', -1);
+          }}
           style={({ pressed }) => ({
             width: 42,
             height: 42,
@@ -157,12 +382,14 @@ export default function Scanner() {
                 <Pressable
                   key={k}
                   onPress={() => {
+                    if (camSource === k) return;
                     sfx('tap');
+                    clearTimers();
+                    stopWebViewStream();
                     setCap(false);
                     setPhoto(null);
                     setPiCaptureId(null);
                     setPiQuality(null);
-                    setStreamErr(false);
                     setCamSource(k);
                   }}
                   style={{
@@ -270,39 +497,57 @@ export default function Scanner() {
               cap && photo ? (
                 <Image
                   source={{ uri: photo }}
-                  style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }}
+                  style={StyleSheet.absoluteFill}
                   resizeMode="cover"
                 />
-              ) : Platform.OS === 'web' ? (
-                <Image
-                  key={streamKey}
-                  source={{ uri: streamSrc }}
-                  onError={() => setStreamErr(true)}
-                  onLoad={() => setStreamErr(false)}
-                  style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }}
-                  resizeMode="cover"
-                />
-              ) : (
-                <WebView
-                  key={streamKey}
-                  originWhitelist={['*']}
-                  source={{ uri: liveSrc }}
-                  mixedContentMode="always"
-                  scrollEnabled={false}
-                  bounces={false}
-                  onError={() => setStreamErr(true)}
-                  onHttpError={() => setStreamErr(true)}
-                  onLoadEnd={() => setStreamErr(false)}
-                  style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#111613' }}
-                />
-              )
+              ) : shouldStream ? (
+                Platform.OS === 'web' ? (
+                  <Image
+                    key={streamKey}
+                    source={{ uri: streamSrc }}
+                    onError={() => scheduleReconnect('Unable to load MJPEG stream')}
+                    onLoad={handleStreamConnected}
+                    style={StyleSheet.absoluteFill}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={StyleSheet.absoluteFill} pointerEvents="none">
+                    <WebView
+                      ref={webViewRef}
+                      key={`${streamMode}-${streamKey}`}
+                      originWhitelist={['*']}
+                      source={
+                        streamMode === 'mjpeg'
+                          ? { html: streamHtml, baseUrl: normalizedPi }
+                          : { uri: liveSrc }
+                      }
+                      injectedJavaScript={streamMode === 'live' ? LIVE_PAGE_BRIDGE_JS : undefined}
+                      javaScriptEnabled
+                      cacheEnabled={false}
+                      mixedContentMode="always"
+                      allowsInlineMediaPlayback
+                      mediaPlaybackRequiresUserAction={false}
+                      scrollEnabled={false}
+                      bounces={false}
+                      overScrollMode="never"
+                      onMessage={handleWebViewMessage}
+                      onError={() => scheduleReconnect('Connection to RPi 5 camera failed')}
+                      onHttpError={(e) => scheduleReconnect(`Camera stream HTTP ${e?.nativeEvent?.statusCode || 'error'}`)}
+                      onRenderProcessGone={() => scheduleReconnect('Camera renderer restarted')}
+                      onContentProcessDidTerminate={() => scheduleReconnect('Camera renderer restarted')}
+                      containerStyle={StyleSheet.absoluteFill}
+                      style={{ flex: 1, backgroundColor: '#111613' }}
+                    />
+                  </View>
+                )
+              ) : null
             )}
 
             {isPhone && (
               cap && photo ? (
                 <Image
                   source={{ uri: photo }}
-                  style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }}
+                  style={StyleSheet.absoluteFill}
                   resizeMode="cover"
                 />
               ) : (
@@ -310,27 +555,44 @@ export default function Scanner() {
                   ref={camRef}
                   facing="back"
                   enableTorch={torch}
-                  style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                  style={StyleSheet.absoluteFill}
                 />
               )
             )}
 
-            {isRpi && !cap && streamErr && (
-              <View style={{
-                position: 'absolute',
-                top: 0, left: 0, right: 0, bottom: 0,
+            {showStreamLoadingOverlay && (
+              <View style={[StyleSheet.absoluteFill, {
+                backgroundColor: 'rgba(10,16,12,0.72)',
+                alignItems: 'center',
+                justifyContent: 'center',
+                paddingHorizontal: 28,
+                gap: 10,
+              }]}>
+                <ActivityIndicator color={GOLD} size="large" />
+                <Text style={{ color: '#fff', fontFamily: 'OpenRunde-Bold', fontSize: 16, textAlign: 'center' }}>
+                  {streamState === 'reconnecting' ? 'Reconnecting to RPi Camera…' : 'Starting live camera…'}
+                </Text>
+                <Text style={{ color: '#9fb5a8', fontFamily: 'OpenRunde-Regular', fontSize: 12.5, textAlign: 'center' }}>
+                  {streamMode === 'mjpeg' ? `${piHostLabel}/stream` : `${piHostLabel}/live`}
+                </Text>
+              </View>
+            )}
+
+            {showStreamErrorOverlay && (
+              <View style={[StyleSheet.absoluteFill, {
                 backgroundColor: 'rgba(10,16,12,0.88)',
                 alignItems: 'center',
                 justifyContent: 'center',
                 paddingHorizontal: 28,
                 gap: 10,
-              }}>
+              }]}>
                 <Ionicons name="videocam-off-outline" size={38} color={GOLD} />
                 <Text style={{ color: '#fff', fontFamily: 'OpenRunde-Bold', fontSize: 17, textAlign: 'center' }}>
                   Waiting for RPi Camera stream
                 </Text>
                 <Text style={{ color: '#9fb5a8', fontFamily: 'OpenRunde-Regular', fontSize: 13, textAlign: 'center', lineHeight: 19 }}>
-                  Make sure api_server.py is running at {piUrl.replace(/^https?:\/\//, '')}/live on the same Wi-Fi.
+                  {streamErrorMsg ? `${streamErrorMsg}. ` : ''}
+                  Make sure api_server.py is running at {piHostLabel} on the same Wi-Fi. Auto-reconnecting…
                 </Text>
                 <View style={{ flexDirection: 'row', gap: 10, marginTop: 6 }}>
                   <Pressable
@@ -345,7 +607,12 @@ export default function Scanner() {
                     <Text style={{ color: '#fff', fontFamily: 'OpenRunde-Bold', fontSize: 13.5 }}>Retry stream</Text>
                   </Pressable>
                   <Pressable
-                    onPress={() => { sfx('tap'); goTab('set'); }}
+                    onPress={() => {
+                      sfx('tap');
+                      clearTimers();
+                      stopWebViewStream();
+                      goTab('set');
+                    }}
                     style={{
                       paddingHorizontal: 16,
                       paddingVertical: 10,
@@ -361,16 +628,14 @@ export default function Scanner() {
 
             <Animated.View
               pointerEvents="none"
-              style={{
-                position: 'absolute',
-                top: 0, left: 0, right: 0, bottom: 0,
+              style={[StyleSheet.absoluteFill, {
                 backgroundColor: '#fff',
                 opacity: flash,
                 zIndex: 10,
-              }}
+              }]}
             />
 
-            {!(isRpi && !cap && streamErr) && (
+            {!(showStreamErrorOverlay || showStreamLoadingOverlay) && (
               <View pointerEvents="none" style={{ width: 220, height: 220, alignItems: 'center', justifyContent: 'center' }}>
                 <Brk s={38} c={cap ? (piQuality && !piQuality.ready ? GOLD : GC.A) : GOLD} />
                 {demo && <Kernel g={demoSim === 'auto' || demoSim === 'low' ? 'Class II' : demoSim} size={136} />}
@@ -387,14 +652,32 @@ export default function Scanner() {
               </View>
             )}
 
-            <View style={{ position: 'absolute', top: 16, backgroundColor: '#000a', paddingHorizontal: 13, paddingVertical: 6, borderRadius: 99 }}>
+            <View style={{
+              position: 'absolute',
+              top: 16,
+              backgroundColor: '#000a',
+              paddingHorizontal: 13,
+              paddingVertical: 6,
+              borderRadius: 99,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+            }}>
+              {isRpi && !cap && (
+                <View style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: 3.5,
+                  backgroundColor: streamState === 'connected' ? GC.A : streamState === 'error' ? GC.C : GOLD,
+                }} />
+              )}
               <Text style={{ color: '#fff', fontFamily: 'OpenRunde-Bold', fontSize: 12.5 }}>
                 {cap
                   ? (piQuality && !piQuality.ready ? '⚠ Check photo quality' : '✓ Image captured')
                   : demo
                     ? (demoSim === 'auto' ? 'Live preview (Demo)' : `Simulate: ${demoSim === 'low' ? 'Low confidence' : demoSim}`)
                     : isRpi
-                      ? `RPi Cam · ${piUrl.replace(/^https?:\/\//, '')}`
+                      ? `${streamState === 'connected' ? 'Live' : streamState === 'error' ? 'Offline' : 'Connecting'} · ${piHostLabel}`
                       : (torch ? 'Phone camera · Torch on' : 'Phone camera')}
               </Text>
             </View>

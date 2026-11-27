@@ -6,21 +6,27 @@ import {Card,Txt,Btn} from '../components';
 import Row from '../components/Row';
 import Top from '../components/Top';
 import {useApp} from '../AppContext';
+import {getDayBucket,formatScanTime} from '../storage';
 import {sfx} from '../sound';
 
 export default function History(){
-  const {T,filt,setFilt,hist,startScan,toast,anim}=useApp();
+  const {T,filt,setFilt,hist,startScan,toast,anim,persistError,retryPersist}=useApp();
+  const now=Date.now();
   const baseFiltered=hist.filter(h=>{
     const g=normGrade(h.g);
     if(filt==='All'||filt==='Oldest')return true;
-    if(filt==='Today')return h.d===0;
+    if(filt==='Today')return getDayBucket(h,now)===0;
     if(filt==='Flagged')return Boolean(h.r);
     return g===filt;
   });
   const l=filt==='Oldest'?[...baseFiltered].reverse():baseFiltered;
   const n={'Extra Class':0,'Class I':0,'Class II':0,'Defect':0};
   let flagged=0,todayCount=0;
-  hist.forEach(h=>{n[normGrade(h.g)]++;if(h.r)flagged++;if(h.d===0)todayCount++});
+  hist.forEach(h=>{
+    n[normGrade(h.g)]++;
+    if(h.r)flagged++;
+    if(getDayBucket(h,now)===0)todayCount++;
+  });
 
   const counts={All:hist.length,Today:todayCount,Oldest:hist.length,...n,Flagged:flagged};
 
@@ -38,7 +44,7 @@ export default function History(){
       `Avg confidence: ${avgConf}% | Flagged for review: ${flagged}`,
       '',
       'Recent scans:',
-      ...hist.slice(0,25).map((h,i)=>`${i+1}. ${h.x||normGrade(h.g)}${h.x?` (model: ${normGrade(h.g)})`:''} — ${pc(h.c)}%${h.r?' [Review]':''} (${h.tm})`),
+      ...hist.slice(0,25).map((h,i)=>`${i+1}. ${h.x||normGrade(h.g)}${h.x?` (model: ${normGrade(h.g)})`:''} — ${pc(h.c)}%${h.r?' [Review]':''} (${formatScanTime(h,now)})`),
     ];
     try{
       await Share.share({message:lines.join('\n'),title:'QualiPea Batch Report'});
@@ -70,6 +76,30 @@ export default function History(){
           ):null
         }
       />
+
+      {persistError&&(
+        <View style={{
+          flexDirection:'row',
+          alignItems:'center',
+          gap:10,
+          backgroundColor:GC.C+'1f',
+          borderWidth:1,
+          borderColor:GC.C+'44',
+          borderRadius:18,
+          paddingHorizontal:14,
+          paddingVertical:10,
+          marginBottom:12,
+        }}>
+          <Ionicons name="cloud-offline-outline" size={18} color={GC.C}/>
+          <Txt s={12.5} w="600" style={{flex:1}}>Local save pending. Tap retry to store history.</Txt>
+          <Pressable
+            onPress={()=>{sfx('tap');retryPersist()}}
+            style={{paddingHorizontal:11,paddingVertical:6,borderRadius:10,backgroundColor:GC.C}}
+          >
+            <Text style={{color:'#fff',fontFamily:'OpenRunde-Bold',fontSize:12}}>Retry</Text>
+          </Pressable>
+        </View>
+      )}
 
       <Card style={{flexDirection:'row',alignItems:'center',gap:18,borderWidth:1,borderColor:T.line}}>
         <View>
@@ -122,7 +152,7 @@ export default function History(){
       </ScrollView>
 
       {[['Today',0],['Yesterday',1],['Earlier',2]].map(([k,d])=>{
-        const g=l.filter(h=>h.d===d);
+        const g=l.filter(h=>getDayBucket(h,now)===d);
         if(!g.length)return null;
         return (
           <View key={k}>
@@ -130,7 +160,10 @@ export default function History(){
               <Txt w="700" c={T.mute}>{k}</Txt>
               <Txt c={T.mute}>{g.length}</Txt>
             </View>
-            {g.map(h=><Row key={hist.indexOf(h)} h={h} i={hist.indexOf(h)}/>)}
+            {g.map(h=>{
+              const idx=hist.indexOf(h);
+              return <Row key={h.id||idx} h={h} i={idx}/>;
+            })}
           </View>
         );
       })}

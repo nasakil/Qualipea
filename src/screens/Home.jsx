@@ -281,7 +281,7 @@ export default function Home(){
             </Pressable>
           )}
         </View>
-        {hist.slice(0,3).map((h,i)=><Row key={i} h={h} i={i}/>)}
+        {hist.slice(0,3).map((h,i)=><Row key={h.id||i} h={h} i={i}/>)}
         {!hist.length&&(
           <Pressable
             onPress={()=>{sfx('tap');startScan()}}

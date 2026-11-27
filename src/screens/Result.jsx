@@ -1,10 +1,11 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Pressable, ScrollView, Animated, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { GOLD, GC, GS, GRADES, normGrade, pc } from '../theme';
 import { GN, PRICE_CONFIG, defectById } from '../data';
 import { Txt, Btn, Kernel, DefectKernel } from '../components';
+import { BoundingBoxOverlay } from '../components/ImageViewerModal';
 import { useApp } from '../AppContext';
 import { sfx } from '../sound';
 
@@ -36,9 +37,59 @@ const HERO_THEME = {
 };
 
 export default function Result() {
-  const { T, dark, cur, saving, openCam, save, askDiscard, openRecommendations, openDefectEditor, setZoomImg, anim } = useApp();
+  const {
+    T, dark, cur, saving, persistError, retryPersist,
+    openCam, save, askDiscard, openRecommendations, openDefectEditor, setZoomImg, anim,
+  } = useApp();
   const heroScale = useRef(new Animated.Value(anim ? 0.94 : 1)).current;
   const heroFade = useRef(new Animated.Value(anim ? 0 : 1)).current;
+  const [imgMode, setImgMode] = useState('annotated'); // 'annotated' | 'original'
+  const [stageBox, setStageBox] = useState({ width: 0, height: 224 });
+  const [natSize, setNatSize] = useState({ width: 0, height: 0 });
+  const [showAllKernels, setShowAllKernels] = useState(false);
+
+  const hasVectorBoxes = Boolean(
+    cur?.kernels?.some(k => Array.isArray(k?.bbox) && k.bbox.length === 4)
+  );
+  const hasAnnotatedImage = Boolean(cur?.annotatedImg);
+  const hasOriginalImage = Boolean(cur?.originalImg);
+  const canToggleImage = Boolean(
+    (hasAnnotatedImage && hasOriginalImage && cur.annotatedImg !== cur.originalImg) ||
+    (hasVectorBoxes && Boolean(cur?.originalImg || cur?.img))
+  );
+
+  // Default to AI-annotated image whenever a new scan result loads
+  useEffect(() => {
+    if (!cur) return;
+    setImgMode(cur.annotatedImg || hasVectorBoxes ? 'annotated' : 'original');
+    setShowAllKernels(false);
+    if (cur.imageWidth && cur.imageHeight) {
+      setNatSize({ width: cur.imageWidth, height: cur.imageHeight });
+    } else {
+      setNatSize({ width: 0, height: 0 });
+    }
+  }, [cur?.id, cur?.annotatedImg, hasVectorBoxes, cur?.imageWidth, cur?.imageHeight]);
+
+  const activePhotoUri = useMemo(() => {
+    if (!cur) return null;
+    if (imgMode === 'original') {
+      return cur.originalImg || cur.img || cur.annotatedImg || null;
+    }
+    return cur.annotatedImg || cur.img || cur.originalImg || null;
+  }, [cur, imgMode]);
+
+  useEffect(() => {
+    if (!activePhotoUri) return;
+    let cancelled = false;
+    Image.getSize(
+      activePhotoUri,
+      (w, h) => {
+        if (!cancelled && w > 0 && h > 0) setNatSize({ width: w, height: h });
+      },
+      () => { }
+    );
+    return () => { cancelled = true; };
+  }, [activePhotoUri]);
 
   useEffect(() => {
     if (!cur) return;
@@ -53,7 +104,7 @@ export default function Result() {
       Animated.spring(heroScale, { toValue: 1, damping: 15, stiffness: 170, useNativeDriver: true }),
       Animated.timing(heroFade, { toValue: 1, duration: 240, useNativeDriver: true }),
     ]).start();
-  }, [cur, anim, heroScale, heroFade]);
+  }, [cur?.id, anim, heroScale, heroFade]);
 
   if (!cur) return null;
   const g = normGrade(cur.g);
@@ -61,6 +112,36 @@ export default function Result() {
   const ht = HERO_THEME[g] || HERO_THEME['Class I'];
   const detectedDefects = (cur.defects || []).map(defectById).filter(Boolean);
   const confPct = pc(cur.c);
+  const realKernels = Array.isArray(cur.kernels) ? cur.kernels : [];
+  const visibleKernels = showAllKernels ? realKernels : realKernels.slice(0, 6);
+
+  // Compute aspect-ratio-preserving image rect inside the preview card for exact vector bbox overlay
+  const previewFit = (() => {
+    const sw = Math.max(1, stageBox.width);
+    const sh = Math.max(1, stageBox.height);
+    if (natSize.width > 0 && natSize.height > 0) {
+      const r = natSize.width / natSize.height;
+      const sr = sw / sh;
+      return r > sr ? { w: sw, h: sw / r } : { w: sh * r, h: sh };
+    }
+    return { w: sw, h: sh };
+  })();
+
+  const openZoomViewer = () => {
+    if (!activePhotoUri) return;
+    sfx('tap');
+    setZoomImg({
+      img: activePhotoUri,
+      annotatedImg: cur.annotatedImg || null,
+      originalImg: cur.originalImg || null,
+      kernels: cur.kernels || null,
+      imageWidth: natSize.width || cur.imageWidth || null,
+      imageHeight: natSize.height || cur.imageHeight || null,
+      initialMode: imgMode,
+    });
+  };
+
+  const showPreviewVectorOverlay = imgMode === 'annotated' && !hasAnnotatedImage && hasVectorBoxes;
 
   return (
     <View style={{ flex: 1, backgroundColor: T.bg }}>
@@ -109,6 +190,37 @@ export default function Result() {
           </View>
         </View>
 
+        {/* Storage Retry Banner (only if AsyncStorage persistence failed) */}
+        {persistError && (
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+            backgroundColor: GC.C + '1f',
+            borderWidth: 1,
+            borderColor: GC.C + '44',
+            borderRadius: 18,
+            paddingHorizontal: 14,
+            paddingVertical: 10,
+          }}>
+            <Ionicons name="cloud-offline-outline" size={18} color={GC.C} />
+            <Txt s={12.5} w="600" style={{ flex: 1 }}>
+              Could not save to local storage. Tap retry to preserve this scan.
+            </Txt>
+            <Pressable
+              onPress={() => { sfx('tap'); retryPersist(); }}
+              style={{
+                paddingHorizontal: 11,
+                paddingVertical: 6,
+                borderRadius: 10,
+                backgroundColor: GC.C,
+              }}
+            >
+              <Text style={{ color: '#fff', fontFamily: 'OpenRunde-Bold', fontSize: 12 }}>Retry</Text>
+            </Pressable>
+          </View>
+        )}
+
         {/* Grade-Adaptive Editorial Hero Card */}
         <Animated.View style={{ opacity: heroFade, transform: [{ scale: heroScale }] }}>
           <LinearGradient
@@ -140,36 +252,113 @@ export default function Result() {
               }}
             />
 
-            {/* Visual Stage: Captured Photo OR Spotlight Peanut */}
-            {cur.img ? (
-              <Pressable
-                onPress={() => { sfx('tap'); setZoomImg(cur.img); }}
-                style={{
-                  width: '100%',
-                  height: 178,
-                  borderRadius: 22,
-                  overflow: 'hidden',
-                  backgroundColor: 'rgba(0,0,0,0.35)',
-                  marginBottom: 16,
-                }}
-              >
-                <Image source={{ uri: cur.img }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-                <View style={{
-                  position: 'absolute',
-                  right: 10,
-                  bottom: 10,
-                  backgroundColor: 'rgba(0,0,0,0.62)',
-                  paddingHorizontal: 10,
-                  paddingVertical: 5,
-                  borderRadius: 99,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 5,
-                }}>
-                  <Ionicons name="expand-outline" size={13} color="#fff" />
-                  <Text style={{ color: '#fff', fontSize: 11, fontFamily: 'OpenRunde-Bold' }}>Zoom</Text>
-                </View>
-              </Pressable>
+            {/* Visual Stage: AI-Annotated / Original Photo OR Spotlight Peanut */}
+            {activePhotoUri ? (
+              <View style={{ marginBottom: 16 }}>
+                <Pressable
+                  onPress={openZoomViewer}
+                  onLayout={(e) => {
+                    const { width, height } = e.nativeEvent.layout;
+                    if (width > 0 && height > 0) setStageBox({ width, height });
+                  }}
+                  style={{
+                    width: '100%',
+                    height: 224,
+                    borderRadius: 22,
+                    overflow: 'hidden',
+                    backgroundColor: '#0a120e',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.12)',
+                  }}
+                >
+                  <View style={{ width: previewFit.w, height: previewFit.h }}>
+                    <Image
+                      source={{ uri: activePhotoUri }}
+                      onLoad={(e) => {
+                        const s = e?.nativeEvent?.source;
+                        if (s?.width > 0 && s?.height > 0) {
+                          setNatSize({ width: s.width, height: s.height });
+                        }
+                      }}
+                      style={{ width: previewFit.w, height: previewFit.h }}
+                      resizeMode="contain"
+                    />
+                    {showPreviewVectorOverlay && (
+                      <BoundingBoxOverlay
+                        kernels={cur.kernels}
+                        fitW={previewFit.w}
+                        fitH={previewFit.h}
+                        natW={natSize.width || cur.imageWidth}
+                        natH={natSize.height || cur.imageHeight}
+                      />
+                    )}
+                  </View>
+
+                  {canToggleImage && (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        left: 10,
+                        bottom: 10,
+                        flexDirection: 'row',
+                        backgroundColor: 'rgba(0,0,0,0.7)',
+                        borderRadius: 99,
+                        padding: 3,
+                        gap: 2,
+                      }}
+                    >
+                      {[
+                        ['annotated', 'Boxes'],
+                        ['original', 'Original'],
+                      ].map(([mKey, mLabel]) => {
+                        const active = imgMode === mKey;
+                        return (
+                          <Pressable
+                            key={mKey}
+                            onPress={(e) => {
+                              e.stopPropagation?.();
+                              sfx('tap');
+                              setImgMode(mKey);
+                            }}
+                            style={{
+                              paddingHorizontal: 9,
+                              paddingVertical: 4,
+                              borderRadius: 99,
+                              backgroundColor: active ? GOLD : 'transparent',
+                            }}
+                          >
+                            <Text style={{
+                              color: active ? '#1d1403' : '#e2eee7',
+                              fontSize: 10.5,
+                              fontFamily: 'OpenRunde-Bold',
+                            }}>
+                              {mLabel}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  )}
+
+                  <View style={{
+                    position: 'absolute',
+                    right: 10,
+                    bottom: 10,
+                    backgroundColor: 'rgba(0,0,0,0.68)',
+                    paddingHorizontal: 10,
+                    paddingVertical: 5,
+                    borderRadius: 99,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 5,
+                  }}>
+                    <Ionicons name="expand-outline" size={13} color="#fff" />
+                    <Text style={{ color: '#fff', fontSize: 11, fontFamily: 'OpenRunde-Bold' }}>Zoom</Text>
+                  </View>
+                </Pressable>
+              </View>
             ) : (
               <View style={{ alignItems: 'center', justifyContent: 'center', paddingTop: 6, paddingBottom: 14 }}>
                 <View style={{
@@ -278,7 +467,7 @@ export default function Result() {
           </View>
         )}
 
-        {/* Unified AI Insights Card: Detected Anomalies + Segmented Score Distribution */}
+        {/* Unified AI Insights Card: Detected Anomalies + Segmented Score Distribution + Kernel Labels */}
         <View style={{
           backgroundColor: T.card,
           borderRadius: 26,
@@ -434,6 +623,54 @@ export default function Result() {
               })}
             </View>
           </View>
+
+          {/* Part 3: Real Per-Kernel Classifications & Confidence Scores (only when provided by backend) */}
+          {realKernels.length > 0 && (
+            <>
+              <View style={{ height: 1, backgroundColor: T.line }} />
+              <View style={{ gap: 9 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Txt s={13.5} w="800">Detected kernels ({realKernels.length})</Txt>
+                  {realKernels.length > 6 && (
+                    <Pressable onPress={() => { sfx('tap'); setShowAllKernels(v => !v); }}>
+                      <Txt s={12} w="700" c={T.g2}>
+                        {showAllKernels ? 'Show less' : `Show all ${realKernels.length}`}
+                      </Txt>
+                    </Pressable>
+                  )}
+                </View>
+
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
+                  {visibleKernels.map((k, idx) => {
+                    const kg = normGrade(k.grade || k.class || k.label);
+                    const kCol = GC[kg] || T.g2;
+                    return (
+                      <View
+                        key={k.id ?? idx}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 6,
+                          paddingHorizontal: 10,
+                          paddingVertical: 6,
+                          borderRadius: 12,
+                          backgroundColor: dark ? '#16221c' : T.bg,
+                          borderWidth: 1,
+                          borderColor: kCol + '40',
+                        }}
+                      >
+                        <View style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: kCol }} />
+                        <Txt s={12} w="700">#{k.id ?? idx + 1} {GS[kg]}</Txt>
+                        {typeof k.confidence === 'number' && (
+                          <Txt s={11.5} w="600" c={T.mute}>{pc(k.confidence)}%</Txt>
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            </>
+          )}
         </View>
 
         {/* Tinted Interactive CTA: Guide & Batch Value */}
@@ -491,7 +728,7 @@ export default function Result() {
         gap: 12,
       }}>
         <Btn t="Scan again" kind="sec" onPress={openCam} />
-        <Btn t="Save result" onPress={save} busy={saving} />
+        <Btn t={cur.saved && !persistError ? 'Saved · History' : 'Save result'} onPress={save} busy={saving} />
       </View>
     </View>
   );

@@ -7,11 +7,13 @@ import {Card,Txt,Bar} from '../components';
 import Row from '../components/Row';
 import Top from '../components/Top';
 import {useApp} from '../AppContext';
+import {getDaysAgo} from '../storage';
 
 const DAY_LABELS=['S','M','T','W','T','F','S'];
 
 export default function Dashboard(){
   const {T,hist,anim}=useApp();
+  const now=Date.now();
   const n=hist.length||1;
   const c={'Extra Class':0,'Class I':0,'Class II':0,'Defect':0};
   const cf={'Extra Class':[],'Class I':[],'Class II':[],'Defect':[]};
@@ -20,15 +22,18 @@ export default function Dashboard(){
     const g=normGrade(h.g);
     c[g]++;
     cf[g].push(h.c);
-    const idx=Math.max(0,Math.min(6,6-h.d));
-    days[idx]++;
+    const daysAgo=getDaysAgo(h,now);
+    if(daysAgo>=0&&daysAgo<=6){
+      days[6-daysAgo]++;
+    }
   });
 
   const av=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
   const fl=hist.filter(h=>h.r);
   const mx=Math.max(1,...days);
+  const weekTotal=days.reduce((a,b)=>a+b,0);
 
-  const todayIdx=new Date().getDay();
+  const todayIdx=new Date(now).getDay();
   const labels=days.map((_,i)=>i===6?'Today':DAY_LABELS[(todayIdx-(6-i)+7)%7]);
 
   const barGrow=useRef(new Animated.Value(anim?0:1)).current;
@@ -43,7 +48,7 @@ export default function Dashboard(){
       duration:520,
       useNativeDriver:false,
     }).start();
-  },[hist.length,anim,barGrow]);
+  },[hist.length,weekTotal,anim,barGrow]);
 
   const topCount=c['Extra Class']+c['Class I'];
   const kpis=[
@@ -78,7 +83,7 @@ export default function Dashboard(){
           }}>
             <Text style={{color:'#ffffffb8',fontSize:12,fontFamily:'OpenRunde-Semibold'}}>Avg scans</Text>
             <Text style={{color:'#fff',fontSize:22,fontFamily:'OpenRunde-Bold',marginTop:2}}>
-              {(hist.length/7).toFixed(1)}
+              {(weekTotal/7).toFixed(1)}
               <Text style={{fontSize:12.5,color:'#ffffffb8',fontFamily:'OpenRunde-Medium'}}> / day</Text>
             </Text>
           </View>
@@ -123,7 +128,7 @@ export default function Dashboard(){
       <Card style={{borderWidth:1,borderColor:T.line}}>
         <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center'}}>
           <Txt s={16} w="700">Last 7 days</Txt>
-          <Txt s={12.5} c={T.mute}>{hist.length} total</Txt>
+          <Txt s={12.5} c={T.mute}>{weekTotal} scans</Txt>
         </View>
         <View style={{flexDirection:'row',alignItems:'flex-end',height:132,gap:8,marginTop:14}}>
           {days.map((d,i)=>{
@@ -190,7 +195,10 @@ export default function Dashboard(){
 
       <Txt s={19} w="700" style={{marginTop:22,marginBottom:10}}>Needs expert review</Txt>
       {fl.length?(
-        fl.map(h=><Row key={hist.indexOf(h)} h={h} i={hist.indexOf(h)}/>)
+        fl.map(h=>{
+          const idx=hist.indexOf(h);
+          return <Row key={h.id||idx} h={h} i={idx}/>;
+        })
       ):(
         <Card style={{borderWidth:1,borderColor:T.line,flexDirection:'row',alignItems:'center',gap:12}}>
           <Ionicons name="checkmark-circle-outline" size={22} color={GC['Extra Class']}/>
