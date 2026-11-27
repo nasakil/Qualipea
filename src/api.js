@@ -1,201 +1,244 @@
-import {GRADES,normGrade} from './theme';
+import { GRADES, normGrade } from './theme';
 
-export const DEFAULT_PI_URL='http://192.168.137.31:5000';
+export const DEFAULT_PI_URL = 'http://192.168.137.31:8000';
 
-export function normalizeUrl(raw){
-  const trimmed=(raw||'').trim().replace(/\/+$/,'');
-  if(!trimmed)return DEFAULT_PI_URL;
-  return /^https?:\/\//i.test(trimmed)?trimmed:`http://${trimmed}`;
+export function normalizeUrl(raw) {
+  let trimmed = (raw || '').trim().replace(/\/+$/, '');
+  if (!trimmed) return DEFAULT_PI_URL;
+  if (!/^https?:\/\//i.test(trimmed)) trimmed = `http://${trimmed}`;
+  // Strip accidental trailing route paths if user pasted e.g. http://192.168.137.31:8000/live
+  return trimmed.replace(/\/(live|stream|video|status|health|capture|analyze|grade|predict|scan|result)(\/.*)?$/i, '');
 }
 
-export function piVideoUrl(baseUrl,nonce=Date.now()){
-  return `${normalizeUrl(baseUrl)}/video?t=${nonce}`;
+export function piLiveUrl(baseUrl, nonce = Date.now()) {
+  return `${normalizeUrl(baseUrl)}/live?t=${nonce}`;
 }
 
-export function piResultUrl(baseUrl,nonce=Date.now()){
-  return `${normalizeUrl(baseUrl)}/result?t=${nonce}`;
+export function piStreamUrl(baseUrl, nonce = Date.now()) {
+  return `${normalizeUrl(baseUrl)}/stream?t=${nonce}`;
 }
 
-async function fetchWithTimeout(url,options={},timeoutMs=4500){
-  const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),timeoutMs);
-  try{
-    const res=await fetch(url,{...options,signal:controller.signal});
+export function piCaptureImageUrl(baseUrl, captureId) {
+  return `${normalizeUrl(baseUrl)}/capture/${encodeURIComponent(captureId)}/image.jpg`;
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 6000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
     return res;
-  }finally{
+  } finally {
     clearTimeout(timer);
   }
 }
 
-export async function checkPiHealth(baseUrl){
-  const base=normalizeUrl(baseUrl);
-  const paths=['/health','/status','/'];
-  let lastError=null;
+export async function checkPiHealth(baseUrl) {
+  const base = normalizeUrl(baseUrl);
+  const paths = ['/status', '/health', '/'];
+  let lastError = null;
 
-  for(const p of paths){
-    try{
-      const res=await fetchWithTimeout(`${base}${p}`,{method:'GET'},4000);
-      if(res.ok){
-        let data=null;
-        try{data=await res.json()}catch(_){}
-        return {ok:true,url:base,endpoint:p,data};
+  for (const p of paths) {
+    try {
+      const res = await fetchWithTimeout(`${base}${p}`, { method: 'GET' }, 4500);
+      if (res.ok) {
+        let data = null;
+        try { data = await res.json(); } catch (_) { }
+        return { ok: true, url: base, endpoint: p, data };
       }
-      // A 404/405 still proves Flask is listening on host:port even if /health isn't defined
-      if(res.status===404||res.status===405){
-        return {ok:true,url:base,endpoint:p,data:null};
+      if (res.status === 404 || res.status === 405) {
+        return { ok: true, url: base, endpoint: p, data: null };
       }
-      lastError=`HTTP ${res.status}`;
-    }catch(err){
-      lastError=err?.name==='AbortError'?'Connection timed out':(err?.message||'Network error');
+      lastError = `HTTP ${res.status}`;
+    } catch (err) {
+      lastError = err?.name === 'AbortError' ? 'Connection timed out' : (err?.message || 'Network error');
     }
   }
-  return {ok:false,url:base,error:lastError||'Unable to reach Raspberry Pi 5'};
+  return { ok: false, url: base, error: lastError || 'Unable to reach Raspberry Pi 5' };
 }
 
-function normalizeProbabilities(data,g,c){
-  const src=data?.probabilities||data?.probs||data?.scores||null;
-  if(src&&typeof src==='object'){
-    const out={};
-    let found=0;
-    const aliases={
-      'Extra Class':['Extra Class','extra_class','extra','EX','A'],
-      'Class I':['Class I','class_1','class1','Class 1','I'],
-      'Class II':['Class II','class_2','class2','Class 2','II','B'],
-      'Defect':['Defect','defect','Defected','defected','Reject','reject','DF','C'],
-    };
-    for(const k of GRADES){
-      for(const a of aliases[k]){
-        const v=src[a];
-        if(typeof v==='number'&&!Number.isNaN(v)){
-          out[k]=v>1?v/100:v;
-          found++;
-          break;
-        }
-      }
+function normalizeProbabilities(data, g, c) {
+  const src = data?.percentages || data?.probabilities || data?.probs || data?.scores || null;
+  if (src && typeof src === 'object') {
+    const out = {};
+    let found = 0;
+    for (const [rawKey, rawVal] of Object.entries(src)) {
+      const v = Number(rawVal);
+      if (Number.isNaN(v)) continue;
+      const mapped = normGrade(rawKey);
+      const frac = v > 1 ? v / 100 : v;
+      out[mapped] = (out[mapped] || 0) + frac;
+      found++;
     }
-    if(found>=2){
-      GRADES.forEach(k=>{if(typeof out[k]!=='number')out[k]=0});
+    if (found >= 2) {
+      GRADES.forEach(k => { if (typeof out[k] !== 'number') out[k] = 0; });
       return out;
     }
   }
-  const rem=Math.max(0,1-c);
-  const others=GRADES.filter(x=>x!==g);
+  const rem = Math.max(0, 1 - c);
+  const others = GRADES.filter(x => x !== g);
   return {
-    [g]:c,
-    [others[0]]:rem*0.55,
-    [others[1]]:rem*0.30,
-    [others[2]]:rem*0.15,
+    [g]: c,
+    [others[0]]: rem * 0.55,
+    [others[1]]: rem * 0.30,
+    [others[2]]: rem * 0.15,
   };
 }
 
-function parsePredictionPayload(data,base,fallbackImg=null){
-  const rawGrade=data.grade??data.class??data.label??data.prediction;
-  const g=normGrade(rawGrade);
-  let c=Number(data.confidence??data.score??data.probability??0.88);
-  if(Number.isNaN(c))c=0.88;
-  if(c>1)c=c/100;
-  c=Math.max(0,Math.min(1,c));
+function parsePredictionPayload(data, base, fallbackImg = null) {
+  const rawGrade = data.grade ?? data.predicted_class ?? data.class ?? data.label ?? data.prediction;
+  const g = normGrade(rawGrade);
+  let c = Number(data.avg_confidence ?? data.confidence ?? data.score ?? data.probability ?? 0.88);
+  if (Number.isNaN(c)) c = 0.88;
+  if (c > 1) c = c / 100;
+  c = Math.max(0, Math.min(1, c));
 
-  const img=data.image_url
-    ? (/^https?:\/\//i.test(data.image_url)?data.image_url:`${base}${data.image_url.startsWith('/')?'':'/'}${data.image_url}`)
-    : (fallbackImg||piResultUrl(base));
+  let img = fallbackImg;
+  if (data.image_url) {
+    img = /^https?:\/\//i.test(data.image_url)
+      ? data.image_url
+      : `${base}${data.image_url.startsWith('/') ? '' : '/'}${data.image_url}`;
+  } else if (data.capture_id) {
+    img = piCaptureImageUrl(base, data.capture_id);
+  }
 
   return {
     g,
     c,
-    rv:c<0.75,
+    rv: c < 0.75,
     img,
-    p:normalizeProbabilities(data,g,c),
-    model:data.model||'yolo11n-cls 1.0.0',
-    price:typeof (data.price??data.reference_price)==='number'?(data.price??data.reference_price):null,
-    priceSource:data.price_source||data.source||null,
-    reason:data.reason||data.explanation||null,
-    defects:Array.isArray(data.defects)?data.defects:undefined,
-    defectRate:typeof data.defect_rate==='number'?data.defect_rate:null,
-    total:typeof data.total==='number'?data.total:null,
-    normal:typeof data.normal==='number'?data.normal:null,
-    defect:typeof data.defect==='number'?data.defect:null,
-    inferenceTime:typeof data.inference_time==='number'?data.inference_time:null,
-    fromPi:true,
+    p: normalizeProbabilities(data, g, c),
+    model: data.model || 'YOLO11n-cls',
+    price: typeof (data.price ?? data.reference_price) === 'number' ? (data.price ?? data.reference_price) : null,
+    priceSource: data.price_source || data.source || null,
+    reason: data.reason || data.explanation || null,
+    defects: Array.isArray(data.defects) ? data.defects : undefined,
+    captureId: data.capture_id || null,
+    gradeShare: typeof data.grade_share === 'number' ? data.grade_share : null,
+    total: typeof data.total_kernels === 'number' ? data.total_kernels : (typeof data.total === 'number' ? data.total : null),
+    counts: data.counts || null,
+    kernels: Array.isArray(data.kernels) ? data.kernels : null,
+    fromPi: true,
   };
 }
 
 /**
- * Primary RPi Camera flow: triggers GET /scan on the Raspberry Pi 5 Flask server.
- * The Pi captures from its Camera Module 3, runs YOLO11-cls, saves /result, and returns JSON.
+ * Step 2 of Pi flow: POST /capture
+ * Grabs a full-res photo, runs quality checks, and returns capture_id + image_url + quality.
  */
-export async function scanFromPi(baseUrl){
-  const base=normalizeUrl(baseUrl);
-  const endpoints=[
-    {path:'/scan',method:'GET'},
-    {path:'/scan',method:'POST'},
-    {path:'/capture',method:'GET'},
-  ];
-  let lastError=null;
-
-  for(const ep of endpoints){
-    try{
-      const res=await fetchWithTimeout(
-        `${base}${ep.path}`,
-        {method:ep.method,headers:{Accept:'application/json'}},
-        30000
-      );
-      if(res.status===404||res.status===405)continue;
-      if(!res.ok){
-        lastError=`HTTP ${res.status}`;
-        continue;
-      }
-      const data=await res.json();
-      if(data&&data.success===false){
-        return {ok:false,error:data.error||'Pi reported scan failed'};
-      }
-      return {
-        ok:true,
-        result:parsePredictionPayload(data,base,piResultUrl(base)),
-      };
-    }catch(err){
-      lastError=err?.name==='AbortError'?'Pi scan timed out':(err?.message||'Cannot reach Pi 5');
+export async function captureFromPi(baseUrl) {
+  const base = normalizeUrl(baseUrl);
+  try {
+    const res = await fetchWithTimeout(
+      `${base}/capture`,
+      { method: 'POST', headers: { Accept: 'application/json' } },
+      20000
+    );
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { ok: false, error: data.error || `Capture failed (HTTP ${res.status})` };
     }
+    const imageUrl = data.image_url
+      ? (/^https?:\/\//i.test(data.image_url) ? data.image_url : `${base}${data.image_url.startsWith('/') ? '' : '/'}${data.image_url}`)
+      : piCaptureImageUrl(base, data.capture_id);
+    return {
+      ok: true,
+      captureId: data.capture_id,
+      imageUrl,
+      quality: data.quality || null,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err?.name === 'AbortError' ? 'Pi capture timed out' : (err?.message || 'Cannot reach Pi 5'),
+    };
   }
-
-  return {ok:false,error:lastError||'Could not trigger /scan on Pi 5'};
 }
 
 /**
- * Phone-camera fallback: uploads a captured phone photo via POST /predict.
+ * Step 4 of Pi flow: POST /analyze {"capture_id": "...", "preview": false}
+ * Classifies with YOLO11n-cls and returns majority grade (clean photo, no bounding boxes).
  */
-export async function classifyKernel(baseUrl,imageUri){
-  const base=normalizeUrl(baseUrl);
-  const endpoints=['/predict','/classify','/grade'];
-  let lastError=null;
+export async function analyzeCaptureOnPi(baseUrl, captureId) {
+  const base = normalizeUrl(baseUrl);
+  try {
+    const res = await fetchWithTimeout(
+      `${base}/analyze`,
+      {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ capture_id: captureId, preview: false }),
+      },
+      45000
+    );
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { ok: false, error: data.error || `Analyze failed (HTTP ${res.status})` };
+    }
+    return {
+      ok: true,
+      result: parsePredictionPayload(data, base, piCaptureImageUrl(base, captureId)),
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err?.name === 'AbortError' ? 'Pi analysis timed out' : (err?.message || 'Cannot reach Pi 5'),
+    };
+  }
+}
 
-  for(const ep of endpoints){
-    try{
-      const form=new FormData();
-      form.append('file',{uri:imageUri,name:'kernel.jpg',type:'image/jpeg'});
-      form.append('image',{uri:imageUri,name:'kernel.jpg',type:'image/jpeg'});
+/**
+ * One-shot helper if captureId wasn't captured beforehand: POST /capture -> POST /analyze.
+ */
+export async function scanFromPi(baseUrl) {
+  const cap = await captureFromPi(baseUrl);
+  if (!cap.ok) return cap;
+  return analyzeCaptureOnPi(baseUrl, cap.captureId);
+}
 
-      const res=await fetchWithTimeout(
+/**
+ * Phone-camera upload flow: tries POST /grade (tray photo) first,
+ * and falls back to POST /predict (single kernel) if /grade returns 422 (too few kernels).
+ */
+export async function classifyKernel(baseUrl, imageUri) {
+  const base = normalizeUrl(baseUrl);
+  const endpoints = ['/grade', '/predict'];
+  let lastError = null;
+
+  for (const ep of endpoints) {
+    try {
+      const form = new FormData();
+      form.append('image', { uri: imageUri, name: 'kernel.jpg', type: 'image/jpeg' });
+      form.append('preview', 'false');
+
+      const res = await fetchWithTimeout(
         `${base}${ep}`,
-        {method:'POST',body:form,headers:{Accept:'application/json'}},
-        15000
+        { method: 'POST', body: form, headers: { Accept: 'application/json' } },
+        30000
       );
 
-      if(res.status===404||res.status===405)continue;
-      if(!res.ok){
-        lastError=`HTTP ${res.status}`;
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 422 && ep === '/grade') {
+        lastError = data.error || 'Too few kernels for tray grade';
+        continue; // fall back to single-kernel /predict
+      }
+      if (res.status === 404 || res.status === 405) continue;
+      if (!res.ok) {
+        lastError = data.error || `HTTP ${res.status}`;
         continue;
       }
 
-      const data=await res.json();
       return {
-        ok:true,
-        result:parsePredictionPayload(data,base,imageUri),
+        ok: true,
+        result: parsePredictionPayload(data, base, imageUri),
       };
-    }catch(err){
-      lastError=err?.name==='AbortError'?'Inference timed out':(err?.message||'Upload failed');
+    } catch (err) {
+      lastError = err?.name === 'AbortError' ? 'Inference timed out' : (err?.message || 'Upload failed');
     }
   }
 
-  return {ok:false,error:lastError||'Could not classify on Pi 5'};
+  return { ok: false, error: lastError || 'Could not classify on Pi 5' };
 }

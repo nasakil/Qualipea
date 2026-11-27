@@ -235,7 +235,7 @@ export default function Result() {
             }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={{ color: 'rgba(255,255,255,0.72)', fontFamily: 'OpenRunde-Semibold', fontSize: 12 }}>
-                  AI Confidence
+                  {cur.total ? `AI Confidence · ${cur.total} kernels` : 'AI Confidence'}
                 </Text>
                 <Text style={{ color: '#fff', fontFamily: 'OpenRunde-Bold', fontSize: 15 }}>
                   {confPct}%
@@ -403,6 +403,12 @@ export default function Result() {
               {GRADES.map(x => {
                 const active = x === g;
                 const col = GC[x];
+                const rawCounts = cur.counts || null;
+                let kCount = null;
+                if (rawCounts) {
+                  const foundKey = Object.keys(rawCounts).find(k => normGrade(k) === x);
+                  if (foundKey !== undefined) kCount = rawCounts[foundKey];
+                }
                 return (
                   <View key={x} style={{ alignItems: 'center', flex: 1 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -418,6 +424,11 @@ export default function Result() {
                     <Txt s={14} w={active ? '800' : '600'} c={active ? T.ink : T.mute} style={{ marginTop: 2 }}>
                       {pc(cur.p?.[x] || 0)}%
                     </Txt>
+                    {typeof kCount === 'number' && (
+                      <Txt s={11} w="600" c={T.mute} style={{ marginTop: 1 }}>
+                        {kCount} pcs
+                      </Txt>
+                    )}
                   </View>
                 );
               })}

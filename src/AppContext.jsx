@@ -5,7 +5,7 @@ import { GR, GC, GRADES, normGrade, pc, LT, DK, Th, AnimCtx } from './theme';
 import { GN, SEED, buildWhySummary, suggestDefects } from './data';
 import { Kernel, Card, Txt } from './components';
 import { sfx, setSfx, initAudio } from './sound';
-import { DEFAULT_PI_URL, normalizeUrl, checkPiHealth, scanFromPi, classifyKernel } from './api';
+import { DEFAULT_PI_URL, normalizeUrl, checkPiHealth, scanFromPi, analyzeCaptureOnPi, classifyKernel } from './api';
 
 const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
@@ -28,6 +28,7 @@ export function AppProvider({ children }) {
   const [oi, setOi] = useState(0);
   const [demo, setDemo] = useState(true);
   const [dev, setDev] = useState(0);
+  const [piInfo, setPiInfo] = useState(null);
   const [hd, setHd] = useState(SEED);
   const [hr, setHr] = useState([]);
   const [cur, setCur] = useState(null);
@@ -70,7 +71,12 @@ export function AppProvider({ children }) {
           if (typeof saved.demo === 'boolean') setDemo(saved.demo);
           if (typeof saved.seenOnb === 'boolean') setSeenOnb(saved.seenOnb);
           if (typeof saved.skipPrep === 'boolean') setSkipPrep(saved.skipPrep);
-          if (typeof saved.piUrl === 'string' && saved.piUrl.trim()) setPiUrl(saved.piUrl);
+          if (typeof saved.piUrl === 'string' && saved.piUrl.trim()) {
+            const migratedUrl = saved.piUrl.trim() === 'http://192.168.137.31:5000'
+              ? DEFAULT_PI_URL
+              : saved.piUrl;
+            setPiUrl(migratedUrl);
+          }
           if (Array.isArray(saved.hr)) {
             setHr(saved.hr.map(item => ({
               ...item,
@@ -181,19 +187,29 @@ export function AppProvider({ children }) {
     const res = await checkPiHealth(targetUrl);
     if (!res.ok) {
       setDev(0);
+      setPiInfo(null);
       sfx('err');
       setSheet({
         ic: 'alert-circle-outline',
         bad: 1,
         title: 'Can’t reach the Pi 5',
-        body: `Could not connect to ${res.url} (${res.error}). Make sure you’re on the same Wi-Fi, or scan with your phone camera.`,
+        body: `Could not connect to ${res.url} (${res.error}). You can still test the camera preview, or switch to Demo mode for simulated grading.`,
         btns: [
-          ['Phone camera', 'gold', () => { close(); setScr('prep', 1) }],
+          ['Switch to Demo', 'gold', () => { close(); setDemo(true); setDev(1); toast('Demo mode enabled'); }],
           ['Retry', 'sec', () => { close(); connect(cb) }],
         ],
       });
       return;
     }
+
+    const d = res.data || {};
+    setPiInfo({
+      online: true,
+      cameraReady: d.camera_ready !== false,
+      cameraBackend: d.camera_backend || 'picamera2',
+      classesCount: d.classes ? Object.keys(d.classes).length : 4,
+      minKernels: d.min_kernels || 5,
+    });
 
     setSheet(prev => prev && prev.load ? { ...prev, stepIdx: 2 } : prev);
     sfx('step', 1);
@@ -210,6 +226,25 @@ export function AppProvider({ children }) {
     }, 450);
   };
 
+  const refreshPiStatus = async () => {
+    if (demo) return;
+    const res = await checkPiHealth(normalizeUrl(piUrl));
+    if (res.ok) {
+      const d = res.data || {};
+      setDev(1);
+      setPiInfo({
+        online: true,
+        cameraReady: d.camera_ready !== false,
+        cameraBackend: d.camera_backend || 'picamera2',
+        classesCount: d.classes ? Object.keys(d.classes).length : 4,
+        minKernels: d.min_kernels || 5,
+      });
+    } else {
+      setDev(0);
+      setPiInfo(null);
+    }
+  };
+
   const completeOnboarding = () => {
     setSeenOnb(true);
     setScr('home', 1);
@@ -223,13 +258,31 @@ export function AppProvider({ children }) {
   };
 
   const makeFallbackResult = (img, preset = 'auto') => {
+    const buildDemoCounts = (probs, total = 24) => {
+      const counts = {};
+      let sum = 0;
+      GRADES.forEach((k, idx) => {
+        if (idx === GRADES.length - 1) {
+          counts[k] = Math.max(0, total - sum);
+        } else {
+          const n = Math.round((probs[k] || 0) * total);
+          counts[k] = n;
+          sum += n;
+        }
+      });
+      return counts;
+    };
     if (preset === 'low') {
+      const p = { 'Extra Class': 0.04, 'Class I': 0.10, 'Class II': 0.66, 'Defect': 0.20 };
+      const total = 18;
       const base = {
         g: 'Class II',
         c: 0.66,
         rv: true,
         img: img || null,
-        p: { 'Extra Class': 0.04, 'Class I': 0.10, 'Class II': 0.66, 'Defect': 0.20 },
+        p,
+        total,
+        counts: buildDemoCounts(p, total),
       };
       return { ...base, defects: suggestDefects(base), autoDefects: true, defectsConfirmed: false };
     }
@@ -242,17 +295,21 @@ export function AppProvider({ children }) {
     const w1 = 0.55;
     const w2 = 0.30;
     const w3 = 0.15;
+    const p = { [g]: c, [o[0]]: rem * w1, [o[1]]: rem * w2, [o[2]]: rem * w3 };
+    const total = preset === 'Extra Class' ? 24 : preset === 'Class I' ? 22 : preset === 'Class II' ? 20 : preset === 'Defect' ? 16 : 20;
     const base = {
       g,
       c,
       rv: c < .75,
       img: img || null,
-      p: { [g]: c, [o[0]]: rem * w1, [o[1]]: rem * w2, [o[2]]: rem * w3 },
+      p,
+      total,
+      counts: buildDemoCounts(p, total),
     };
     return { ...base, defects: suggestDefects(base), autoDefects: true, defectsConfirmed: false };
   };
 
-  const analyze = async (source = 'pi') => {
+  const analyze = async (source = 'pi', captureId = null) => {
     setPs(0);
     setScr('proc', 1);
 
@@ -271,14 +328,16 @@ export function AppProvider({ children }) {
       return;
     }
 
-    // Real mode: trigger GET /scan on Raspberry Pi 5 (default RPi Cam) or POST /predict (Phone fallback)
+    // Real mode: POST /analyze with capture_id (RPi Cam) or POST /grade -> /predict (Phone fallback)
     setPs(1);
     sfx('step', 0);
     setTimeout(() => { setPs(2); sfx('step', 1) }, 450);
 
     const piRes = (source === 'phone' && photo)
       ? await classifyKernel(piUrl, photo)
-      : await scanFromPi(piUrl);
+      : captureId
+        ? await analyzeCaptureOnPi(piUrl, captureId)
+        : await scanFromPi(piUrl);
     setPs(3);
     sfx('step', 2);
 
@@ -293,8 +352,21 @@ export function AppProvider({ children }) {
         defectsConfirmed: true,
       };
     } else {
-      finalCur = makeFallbackResult(photo || null);
-      toast(piRes.error || 'Pi 5 server offline · using local estimate');
+      setDev(0);
+      setPiInfo(null);
+      sfx('err');
+      setScr('cam', -1);
+      setSheet({
+        ic: 'alert-circle-outline',
+        bad: 1,
+        title: 'Cannot grade without Pi 5',
+        body: `${piRes.error || 'Raspberry Pi 5 server & YOLO11n-cls model are unreachable.'}\n\nConnect your Pi 5 on the same Wi-Fi, or switch to Demo mode to test offline.`,
+        btns: [
+          ['Use Demo mode', 'gold', () => { close(); setDemo(true); setDev(1); toast('Demo mode enabled'); }],
+          ['Edit Pi IP', 'sec', () => { close(); goTab('set'); }],
+        ],
+      });
+      return;
     }
 
     setCur(finalCur);
@@ -580,7 +652,7 @@ export function AppProvider({ children }) {
     openRecommendations, openDefectEditor, saveScanDefects, saveScanKg, confirmDelete,
     sys, dark, setDark, T,
     scr, setScr, goTab, navDir,
-    oi, setOi, demo, setDemo, dev, setDev,
+    oi, setOi, demo, setDemo, dev, setDev, piInfo, refreshPiStatus,
     hd, setHd, hr, setHr, cur, setCur, cap, setCap, photo, setPhoto,
     tab, setTab, pd, setPd, ps, setPs, filt, setFilt,
     sheet, setSheet, msg, setMsg, dg, setDg, saving, setSaving,
